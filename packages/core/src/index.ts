@@ -1,5 +1,6 @@
 export type {Account} from './account.ts';
 export type {Balance} from './balance.ts';
+export type {Connector, ConnectorEnvironment, ConnectorManifest} from './connector.ts';
 export {topCounterparties} from './counterparties.ts';
 export type {CounterpartyTotal} from './counterparties.ts';
 export {moneyFromDecimal, moneyToDecimal} from './decimal.ts';

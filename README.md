@@ -92,10 +92,17 @@ Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
 
 ```json
 {
-  "enableBanking": {"appId": "<application id>", "privateKeyPath": "~/.config/caton-ai/app.pem"},
-  "connections": [{"name": "mybank", "sessionId": "<authorised session id>"}]
+  "plugins": {
+    "enable-banking": {"appId": "<application id>", "privateKey": "file:~/.config/caton-ai/app.pem"}
+  },
+  "connections": [
+    {"name": "mybank", "type": "enable-banking", "sessionId": "<authorised session id>"}
+  ]
 }
 ```
+
+Each connection names the connector plugin that serves it (`type`); secrets are referenced, never
+written in the file. See [ADR 0014](docs/adr/0014-connector-plugin-contract.md).
 
 ```sh
 npm ci --ignore-scripts

@@ -4,8 +4,9 @@ import {join} from 'node:path';
 
 import {afterEach, describe, expect, it} from 'vitest';
 
-import {ConfigError, loadConfig, readPrivateKey} from '../src/config.ts';
+import {ConfigError, loadConfig} from '../src/config.ts';
 import {configDirectory, dataDirectory, expandHome} from '../src/paths.ts';
+import {readSecret} from '../src/secrets.ts';
 
 const directories: string[] = [];
 
@@ -19,11 +20,10 @@ function directoryWith(files: Readonly<Record<string, [string, number]>>): strin
   return directory;
 }
 
-const valid = (keyPath: string): string =>
-  JSON.stringify({
-    enableBanking: {appId: 'app', privateKeyPath: keyPath},
-    connections: [{name: 'millennium', sessionId: 's'}],
-  });
+const valid = JSON.stringify({
+  plugins: {'enable-banking': {appId: 'app', privateKey: 'file:~/key.pem'}},
+  connections: [{name: 'millennium', type: 'enable-banking', sessionId: 's'}],
+});
 
 afterEach(() => {
   directories.splice(0).forEach(directory => {
@@ -32,23 +32,38 @@ afterEach(() => {
 });
 
 describe('loadConfig', () => {
-  it('loads a private, valid configuration and its private key', () => {
-    const directory = directoryWith({'key.pem': ['KEY', 0o600]});
-    writeFileSync(join(directory, 'config.json'), valid(join(directory, 'key.pem')), {mode: 0o600});
+  it('loads a private, valid configuration, keeping each connection’s own settings', () => {
+    const config = loadConfig(directoryWith({'config.json': [valid, 0o600]}));
 
-    expect(readPrivateKey(loadConfig(directory))).toBe('KEY');
+    expect(config.connections).toEqual([
+      {name: 'millennium', type: 'enable-banking', sessionId: 's'},
+    ]);
+    expect(config.plugins['enable-banking']).toEqual({appId: 'app', privateKey: 'file:~/key.pem'});
   });
 
   it('refuses files that other users can read', () => {
-    const directory = directoryWith({'config.json': [valid('/k'), 0o644]});
+    const directory = directoryWith({'config.json': [valid, 0o644]});
 
     expect(() => loadConfig(directory)).toThrow(ConfigError);
   });
 
   it('explains what is wrong with an invalid configuration', () => {
-    const directory = directoryWith({'config.json': ['{"connections": []}', 0o600]});
+    const twice = {name: 'a', type: 'enable-banking'};
+    const cases = ['{"connections": []}', JSON.stringify({connections: [twice, twice]})];
+    for (const content of cases) {
+      const directory = directoryWith({'config.json': [content, 0o600]});
+      expect(() => loadConfig(directory)).toThrow(/is invalid/u);
+    }
+  });
+});
 
-    expect(() => loadConfig(directory)).toThrow(/is invalid/u);
+describe('readSecret', () => {
+  it('reads private files and refuses shared files and unknown schemes', () => {
+    const directory = directoryWith({'key.pem': ['KEY', 0o600], 'shared.pem': ['KEY', 0o644]});
+
+    expect(readSecret(`file:${join(directory, 'key.pem')}`)).toBe('KEY');
+    expect(() => readSecret(`file:${join(directory, 'shared.pem')}`)).toThrow(ConfigError);
+    expect(() => readSecret('vault:key')).toThrow(/Unsupported secret reference/u);
   });
 });
 

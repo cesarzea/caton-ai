@@ -19,6 +19,8 @@ discussion are marked **Proposed**.
 | [0011](0011-engineering-quality-gates.md)                | Engineering standards and quality gates         | Accepted |
 | [0012](0012-interim-local-secrets-and-ledger-storage.md) | Interim storage of local secrets and the ledger | Proposed |
 | [0013](0013-read-only-mcp-server.md)                     | Read-only MCP server over the ledger            | Proposed |
+| [0014](0014-connector-plugin-contract.md)                | Connector plugin contract                       | Proposed |
+| [0015](0015-email-alerts-connector.md)                   | Email alerts connector                          | Proposed |
 
 ## Writing a new ADR
 

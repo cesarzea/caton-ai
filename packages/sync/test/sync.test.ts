@@ -47,13 +47,13 @@ describe('syncConnection', () => {
 
     const first = await syncConnection({
       name: 'bank',
-      source,
+      source: () => source,
       ledger,
       now: () => new Date('2026-09-27T10:00:00Z'),
     });
     await syncConnection({
       name: 'bank',
-      source,
+      source: () => source,
       ledger,
       now: () => new Date('2026-09-28T10:00:00Z'),
     });
@@ -72,9 +72,21 @@ describe('syncConnection failures', () => {
       listAccounts: () => Promise.reject(new Error('consent expired')),
     };
 
-    const outcome = await syncConnection({name: 'bank', source: broken, ledger});
+    const outcome = await syncConnection({name: 'bank', source: () => broken, ledger});
 
     expect(outcome).toEqual({name: 'bank', ok: false, error: 'consent expired'});
     expect(ledger.lastRun('bank')).toMatchObject({outcome: 'failed', error: 'consent expired'});
+  });
+
+  it('records a connection whose source cannot even be built', async () => {
+    const ledger = openLedger(':memory:');
+    const misconfigured = (): TransactionSource => {
+      throw new Error('Invalid settings');
+    };
+
+    const outcome = await syncConnection({name: 'bank', source: misconfigured, ledger});
+
+    expect(outcome).toEqual({name: 'bank', ok: false, error: 'Invalid settings'});
+    expect(ledger.lastRun('bank')?.outcome).toBe('failed');
   });
 });
