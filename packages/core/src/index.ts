@@ -1,6 +1,6 @@
 export type {Account} from './account.ts';
 export type {Balance} from './balance.ts';
-export {moneyFromDecimal} from './decimal.ts';
+export {moneyFromDecimal, moneyToDecimal} from './decimal.ts';
 export {addMoney, currencyCode, currencyDigits, formatMoney, money, negateMoney} from './money.ts';
 export type {CurrencyCode, Money} from './money.ts';
 export type {TransactionSource} from './source.ts';
