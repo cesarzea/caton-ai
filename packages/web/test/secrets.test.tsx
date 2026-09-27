@@ -62,6 +62,22 @@ describe('multi-line secrets', () => {
   });
 });
 
+describe('shared secrets from a file', () => {
+  it('are saved whole under the name typed first', async () => {
+    const api = fakeApi({state: 'unlocked', keySource: 'passphrase'});
+    const {user} = openApp(api);
+    const pem = '-----BEGIN PRIVATE KEY-----\nabc\n-----END PRIVATE KEY-----\n';
+    await user.upload(await screen.findByLabelText('Load from a file'), new File([pem], 'app.pem'));
+    expect(screen.getByRole('alert').textContent).toBe('Use lowercase letters, digits and dashes.');
+
+    await user.type(screen.getByLabelText('Name'), 'enable-banking-key');
+    await user.upload(screen.getByLabelText('Load from a file'), new File([pem], 'app.pem'));
+
+    expect(await within(await rowOf('enable-banking-key')).findByText('Stored')).toBeDefined();
+    expect(api.stored.get('enable-banking-key')).toBe(pem);
+  });
+});
+
 describe('other secrets', () => {
   it('are added under a valid name', async () => {
     const api = fakeApi({state: 'unlocked', keySource: 'passphrase'});

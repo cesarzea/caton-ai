@@ -74,10 +74,9 @@ describe('adding a connection of another plugin', () => {
     expect(screen.getByRole('alert').textContent).toBe('IMAP port must be a whole number');
 
     await user.click(screen.getByRole('radio', {name: /Enable Banking/u}));
-    await user.upload(
-      screen.getByLabelText('Load from a file'),
-      new File(['-----BEGIN PRIVATE KEY-----\nabc\n'], 'app.pem'),
-    );
+    // The first loader is the form's; the secrets panel below has its own.
+    const formLoader = screen.getAllByLabelText('Load from a file').at(0) ?? document.body;
+    await user.upload(formLoader, new File(['-----BEGIN PRIVATE KEY-----\nabc\n'], 'app.pem'));
     expect(screen.getByText('A new value will be saved.')).toBeDefined();
   });
 });

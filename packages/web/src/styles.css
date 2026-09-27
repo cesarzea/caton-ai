@@ -332,7 +332,7 @@ h2 {
 
 .inline-form {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr auto auto;
   gap: 12px;
   align-items: end;
 }
