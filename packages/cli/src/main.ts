@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import {emailAlertsConnector} from '@caton-ai/email-alerts';
 import {enableBankingConnector} from '@caton-ai/enable-banking';
 import {openLedger, openLedgerReadOnly} from '@caton-ai/ledger';
+import {llmProvider} from '@caton-ai/llm';
 import {storeNeeds} from '@caton-ai/instances';
 import {serveOverStdio} from '@caton-ai/mcp';
 import {initVault, openVault, osCredentialStore} from '@caton-ai/secrets';
@@ -16,7 +17,7 @@ import type {CatonConfig} from './config.ts';
 import {connectionStatuses} from './connection-status.ts';
 import {configFile} from './config-file.ts';
 import {editableConfiguration, pluginInfos} from './configuration.ts';
-import {catalogOf, sourceFactory} from './connectors.ts';
+import {catalogOf, modelPluginsOf, sourceFactory} from './connectors.ts';
 import {terminalOutput} from './output.ts';
 import {configDirectory, dataDirectory} from './paths.ts';
 import {passphraseAsker} from './secrets.ts';
@@ -31,8 +32,12 @@ const output = terminalOutput(process.stdout, process.stderr);
 const ledgerPath = (): string => join(dataDirectory(process.env), 'ledger.sqlite');
 // Prompts go to stderr: stdout belongs to command output, and to the protocol under `caton mcp`.
 const terminal = terminalInput(process.stdin, process.stderr);
-const connectors = [enableBankingConnector, emailAlertsConnector];
-const catalog = catalogOf(connectors);
+const plugins = {
+  connectors: [enableBankingConnector, emailAlertsConnector],
+  models: [llmProvider],
+};
+const catalog = catalogOf(plugins);
+const modelPlugins = modelPluginsOf(plugins);
 const pluginDirectory = (plugin: string): string =>
   join(configDirectory(process.env), 'plugins', plugin);
 const file = configFile(configDirectory(process.env), () => new Date());
@@ -52,8 +57,9 @@ try {
     },
     readOnlyLedger: () => openLedgerReadOnly(ledgerPath()),
     serveMcp: serveOverStdio,
-    source: sourceFactory(connectors, pluginDirectory),
+    source: sourceFactory(plugins, pluginDirectory, () => config().instances),
     catalog,
+    modelPlugins,
     configFile: file,
     secrets: {
       init: key => initVault(configDirectory(process.env), key, keyDependencies),
@@ -66,11 +72,12 @@ try {
         secretsDirectory: configDirectory(process.env),
         credentials: keyDependencies.credentials,
         connections: () =>
-          connectionStatuses(config(), () =>
-            existsSync(ledgerPath()) ? openLedgerReadOnly(ledgerPath()) : null,
+          connectionStatuses(
+            config().instances.filter(instance => !modelPlugins.has(instance.plugin)),
+            () => (existsSync(ledgerPath()) ? openLedgerReadOnly(ledgerPath()) : null),
           ),
         secretNeeds: () => storeNeeds(config().instances, catalog),
-        plugins: pluginInfos(connectors),
+        plugins: pluginInfos(plugins),
         configuration: editableConfiguration(config, file, forgetConfig),
         assets: loadAssets(webDirectory),
         log: message => {

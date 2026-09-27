@@ -15,6 +15,7 @@
     "@caton-ai/enable-banking": "0.0.0",
     "@caton-ai/instances": "0.0.0",
     "@caton-ai/ledger": "0.0.0",
+    "@caton-ai/llm": "0.0.0",
     "@caton-ai/mcp": "0.0.0",
     "@caton-ai/secrets": "0.0.0",
     "@caton-ai/server": "0.0.0",

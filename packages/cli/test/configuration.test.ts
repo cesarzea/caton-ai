@@ -27,34 +27,38 @@ describe('editableConfiguration', () => {
   });
 });
 
+const manifest = {
+  id: 'p',
+  version: '1',
+  title: 'P',
+  description: 'D',
+  network: [],
+  variables: [{key: 'k', label: 'K', kind: 'choice', required: true, choices: ['a'], help: 'H'}],
+} as const;
+
+const unused = (): never => {
+  throw new Error('unused');
+};
+
 describe('pluginInfos', () => {
   it('shows each plugin contract as the web interface needs it', () => {
-    const [info] = pluginInfos([
-      {
-        manifest: {
-          id: 'p',
-          version: '1',
-          title: 'P',
-          description: 'D',
-          network: [],
-          variables: [
-            {key: 'k', label: 'K', kind: 'choice', required: true, choices: ['a'], help: 'H'},
-          ],
-        },
-        createSource: () => {
-          throw new Error('unused');
-        },
-      },
-    ]);
-
-    expect(info).toEqual({
-      id: 'p',
-      title: 'P',
-      description: 'D',
-      network: [],
-      variables: [
-        {key: 'k', label: 'K', kind: 'choice', required: true, choices: ['a'], help: 'H'},
-      ],
+    const infos = pluginInfos({
+      connectors: [{manifest, createSource: unused}],
+      models: [{manifest: {...manifest, id: 'm', variables: []}, createModel: unused}],
     });
+
+    expect(infos).toEqual([
+      {
+        id: 'p',
+        kind: 'connector',
+        title: 'P',
+        description: 'D',
+        network: [],
+        variables: [
+          {key: 'k', label: 'K', kind: 'choice', required: true, choices: ['a'], help: 'H'},
+        ],
+      },
+      {id: 'm', kind: 'model', title: 'P', description: 'D', network: [], variables: []},
+    ]);
   });
 });

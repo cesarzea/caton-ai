@@ -1,12 +1,16 @@
+import type {LanguageModel} from './model.ts';
 import type {TransactionSource} from './source.ts';
 
 /**
  * How a variable is entered and kept:
  * - `text`, `number`, `choice` (one of `choices`) and `list` (several) live in the configuration;
  * - `secret` (one line, such as a password) and `secret-file` (loaded whole from a file, such as
- *   a PEM key) live only in the encrypted secret store.
+ *   a PEM key) live only in the encrypted secret store;
+ * - `model` is the id of a configured language model instance, which the host turns into a
+ *   `LanguageModel` for the plugin (ADR 0020).
  */
-export type VariableKind = 'text' | 'number' | 'choice' | 'list' | 'secret' | 'secret-file';
+export type VariableKind =
+  'text' | 'number' | 'choice' | 'list' | 'secret' | 'secret-file' | 'model';
 
 /** A value a plugin needs from the user, explained so that they know what it is and where to get it. */
 export interface VariableSpec {
@@ -45,6 +49,8 @@ export interface ConnectorManifest {
 export interface ConnectorEnvironment {
   /** A directory of the plugin's own files, such as email recipes; it may not exist. */
   readonly pluginDirectory: string;
+  /** The language model chosen in the connector's `model` variable, if it declares one. */
+  readonly model?: LanguageModel;
 }
 
 /** A connector plugin: turns one configured instance into a source of transactions. */
@@ -59,4 +65,11 @@ export interface Connector {
     variables: Readonly<Record<string, unknown>>,
     environment: ConnectorEnvironment,
   ): TransactionSource;
+}
+
+/** A plugin that makes language models available, configured as instances like connectors. */
+export interface ModelProvider {
+  readonly manifest: ConnectorManifest;
+  /** Builds the model of one instance; secrets arrive resolved, as for connectors. */
+  createModel(variables: Readonly<Record<string, unknown>>): LanguageModel;
 }

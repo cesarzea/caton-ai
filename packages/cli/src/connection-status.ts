@@ -1,7 +1,7 @@
 import type {ConnectionStatus} from '@caton-ai/api';
 import type {LedgerReader} from '@caton-ai/ledger';
 
-import type {CatonConfig, Instance} from './config.ts';
+import type {Instance} from './config.ts';
 
 function statusOf(reader: LedgerReader | null, {id, title, plugin}: Instance): ConnectionStatus {
   const last = reader?.lastRun(id) ?? null;
@@ -27,14 +27,14 @@ function statusOf(reader: LedgerReader | null, {id, title, plugin}: Instance): C
   };
 }
 
-/** The latest sync of every configured instance; all never synced when there is no ledger. */
+/** The latest sync of every connection; all never synced when there is no ledger. */
 export function connectionStatuses(
-  config: CatonConfig,
+  instances: readonly Instance[],
   ledger: () => LedgerReader | null,
 ): ConnectionStatus[] {
   const reader = ledger();
   try {
-    return config.instances.map(instance => statusOf(reader, instance));
+    return instances.map(instance => statusOf(reader, instance));
   } finally {
     reader?.close();
   }

@@ -30,7 +30,7 @@ describe('connectionStatuses', () => {
       ],
     };
 
-    expect(connectionStatuses(config, () => context.readOnlyLedger())).toMatchObject([
+    expect(connectionStatuses(config.instances, () => context.readOnlyLedger())).toMatchObject([
       {
         id: 'millennium',
         plugin: 'fake',
@@ -55,8 +55,8 @@ describe('connectionStatuses without a ledger', () => {
   it('reports every connection as never synced when there is no ledger', () => {
     const config = {instances: [{id: 'amex', title: 'Amex', plugin: 'email-alerts', settings: {}}]};
 
-    expect(connectionStatuses(config, () => null).map(status => status.lastOutcome)).toEqual([
-      'never',
-    ]);
+    expect(
+      connectionStatuses(config.instances, () => null).map(status => status.lastOutcome),
+    ).toEqual(['never']);
   });
 });

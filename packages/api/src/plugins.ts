@@ -7,7 +7,7 @@ const IDENTIFIER = /^[a-z0-9][a-z0-9-]*$/u;
 export const variableSpecSchema = z.object({
   key: z.string(),
   label: z.string(),
-  kind: z.enum(['text', 'number', 'choice', 'list', 'secret', 'secret-file']),
+  kind: z.enum(['text', 'number', 'choice', 'list', 'secret', 'secret-file', 'model']),
   required: z.boolean(),
   default: z.union([z.string(), z.number()]).optional(),
   choices: z.array(z.string()).optional(),
@@ -16,6 +16,8 @@ export const variableSpecSchema = z.object({
 
 export const pluginSchema = z.object({
   id: z.string(),
+  /** A connector syncs money data; a model reads text for the connectors that choose it. */
+  kind: z.enum(['connector', 'model']),
   title: z.string(),
   description: z.string(),
   network: z.array(z.string()),

@@ -1,10 +1,11 @@
+import {connections} from '../context.ts';
 import type {CommandContext} from '../context.ts';
 import {table} from '../output.ts';
 
 /** Shows the latest sync of every connection; a failing one makes the command fail. */
 export function statusCommand(context: CommandContext): number {
   const ledger = context.ledger();
-  const runs = context.config().instances.map(instance => ({
+  const runs = connections(context).map(instance => ({
     name: instance.id,
     run: ledger.lastRun(instance.id),
   }));
