@@ -68,3 +68,33 @@ describe('secret store safety', () => {
     );
   });
 });
+
+describe('secret store under concurrent writes', () => {
+  it('keeps every change made at the same time, in this process and from another opening', async () => {
+    const {directory} = await fileVault();
+    const server = await openVault(directory, dependencies());
+    const commandLine = await openVault(directory, dependencies());
+
+    await Promise.all([
+      ...['a', 'b', 'c', 'd', 'e'].map(name => server.set(name, `value-${name}`)),
+      commandLine.set('f', 'value-f'),
+    ]);
+    await server.reload();
+
+    expect((await openVault(directory, dependencies())).names()).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+      'e',
+      'f',
+    ]);
+    expect(server.names()).toEqual(['a', 'b', 'c', 'd', 'e', 'f']);
+  });
+
+  it('refuses short passphrases whoever asks for them', async () => {
+    await expect(
+      initVault(join(temporaryDirectory(), 'store'), {source: 'passphrase'}, dependencies('short')),
+    ).rejects.toThrow(/at least 12 characters/u);
+  });
+});

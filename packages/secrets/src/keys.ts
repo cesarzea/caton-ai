@@ -19,7 +19,15 @@ export interface KeyDependencies {
   /** Asks the user for the passphrase; `confirm` asks twice, when creating it. */
   readonly askPassphrase: (confirm: boolean) => Promise<string>;
   readonly credentials: CredentialStore;
+  /**
+   * log2 of the scrypt cost of a new passphrase; age's default (18) when absent. Only tests
+   * lower it: decryption takes the cost recorded in the file.
+   */
+  readonly scryptWorkFactor?: number;
 }
+
+/** New passphrases shorter than this are refused, whoever asks for them. */
+export const MIN_PASSPHRASE_LENGTH = 12;
 
 const OS_SERVICE = 'caton-ai';
 const OS_ACCOUNT = 'secret-store-key';
@@ -44,7 +52,16 @@ export async function saveKey(
   switch (key.source) {
     case 'passphrase': {
       const encrypter = new Encrypter();
-      encrypter.setPassphrase(await dependencies.askPassphrase(true));
+      const passphrase = await dependencies.askPassphrase(true);
+      if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+        throw new SecretsError(
+          `Use a passphrase of at least ${String(MIN_PASSPHRASE_LENGTH)} characters`,
+        );
+      }
+      encrypter.setPassphrase(passphrase);
+      if (dependencies.scryptWorkFactor !== undefined) {
+        encrypter.setScryptWorkFactor(dependencies.scryptWorkFactor);
+      }
       writePrivate(wrappedKeyPath(directory), await encrypter.encrypt(identity), false);
       return;
     }

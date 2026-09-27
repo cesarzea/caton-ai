@@ -22,6 +22,7 @@ export function fakeSecrets(): FakeSecrets {
       return Promise.resolve();
     },
     remove: name => Promise.resolve(entries.delete(name)),
+    reload: () => Promise.resolve(),
   };
   return {
     entries,

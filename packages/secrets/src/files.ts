@@ -1,3 +1,4 @@
+import {randomUUID} from 'node:crypto';
 import {
   existsSync,
   mkdirSync,
@@ -40,7 +41,7 @@ export function writePrivate(path: string, data: Uint8Array | string, replace: b
   if (!replace && existsSync(path)) {
     throw new SecretsError(`${path} already exists`);
   }
-  const temporary = `${path}.${String(process.pid)}.tmp`;
+  const temporary = `${path}.${String(process.pid)}.${randomUUID()}.tmp`;
   try {
     writeFileSync(temporary, data, {mode: 0o600, flag: 'wx'});
     renameSync(temporary, path);
