@@ -28,7 +28,7 @@ export function createEmailAlertsSource(options: EmailAlertsSourceOptions): Tran
   const accounts = [
     ...new Map(
       options.recipes.map(recipe => {
-        const account = accountOf(recipe, options.connection);
+        const account = accountOf(recipe);
         return [account.id, account];
       }),
     ).values(),

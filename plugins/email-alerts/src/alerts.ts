@@ -12,8 +12,6 @@ import type {Recipe} from './recipe.ts';
 export const SOURCE_NAME = 'email-alerts';
 
 export interface AlertsOptions {
-  /** Name of the configured connection; it keeps account ids apart across connections. */
-  readonly connection: string;
   /** Receiving server whose `Authentication-Results` are trusted, e.g. `mx.google.com`. */
   readonly authServer: string;
 }
@@ -29,10 +27,13 @@ export interface AlertsReport {
 const hash = (value: string): string =>
   createHash('sha256').update(value).digest('hex').slice(0, 16);
 
-/** The account a recipe feeds; recipes naming the same institution and account share it. */
-export function accountOf(recipe: Recipe, connection: string): Account {
+/**
+ * The account a recipe feeds. Its id depends only on the institution and account name, so that
+ * recipes and connections (mailboxes) describing the same card feed one account.
+ */
+export function accountOf(recipe: Recipe): Account {
   const {institution, name, currency} = recipe.account;
-  const id = `email:${hash([connection, institution, name].join('\n'))}`;
+  const id = `email:${hash([institution, name].join('\n'))}`;
   return {
     id,
     sourceRef: id,
@@ -82,7 +83,7 @@ export function readAlerts(
     }
     const extraction = extract(recipe, message);
     if (extraction.ok) {
-      const account = accountOf(recipe, options.connection);
+      const account = accountOf(recipe);
       report.transactions.push(transactionOf(recipe, extraction.alert, message, account.id));
     } else {
       const sent = message.date.toISOString();

@@ -23,7 +23,6 @@ const august = message({
 function source(box: Mailbox): ReturnType<typeof createEmailAlertsSource> {
   const second = recipe({id: 'example-card-refund', subject: 'abono', direction: 'in'});
   return createEmailAlertsSource({
-    connection: 'amex',
     authServer: AUTH_SERVER,
     mailbox: box,
     recipes: [recipe(), second],
@@ -41,6 +40,19 @@ describe('email alerts source', () => {
     for (const account of accounts) {
       expect(await alerts.listBalances(account)).toEqual([]);
     }
+  });
+});
+
+describe('email alerts source accounts', () => {
+  it('are the same card whichever mailbox or recipe feeds them', async () => {
+    const [fromCharges] = await source(mailbox([])).listAccounts();
+    const refunds = createEmailAlertsSource({
+      authServer: AUTH_SERVER,
+      mailbox: mailbox([]),
+      recipes: [recipe({id: 'other-mailbox-refund', direction: 'in'})],
+    });
+
+    expect((await refunds.listAccounts())[0]?.id).toBe(fromCharges?.id);
   });
 });
 

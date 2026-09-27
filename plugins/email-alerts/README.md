@@ -4,7 +4,8 @@ Connector plugin that turns card alerts and receipts received by email into tran
 ([ADR 0015](../../docs/adr/0015-email-alerts-connector.md)). It is built for sources without a
 bank API, such as American Express Spain.
 
-> Status: the recipe engine is ready; the IMAP mailbox and the first real recipe come next.
+> Status: the recipe engine reads `movement` documents. Statements, receipts and notices, the
+> IMAP mailbox and the first real recipe come next ([ADR 0015](../../docs/adr/0015-email-alerts-connector.md)).
 
 ## Recipes
 
@@ -33,6 +34,9 @@ A recipe describes one kind of email. Adding a sender means adding a recipe, not
   converted to text.
 - `date` is optional; the date the email was sent is used when it is absent. `currency` is
   optional too; it can capture a code (`USD`) or a symbol (`$`).
+- `account` identifies the card, for example `{"institution": "American Express", "name": "Gold ···1234"}`.
+  Its id depends only on these, so several recipes or mailboxes describing the same card feed one
+  account.
 - `partialCoverage` says what the emails miss, so that totals are never reported as complete
   when they are not.
 

@@ -4,7 +4,7 @@ import {describe, expect, it} from 'vitest';
 import {readAlerts} from '../src/index.ts';
 import {AUTH_SERVER, message, recipe} from './mail.ts';
 
-const options = {connection: 'amex', authServer: AUTH_SERVER};
+const options = {authServer: AUTH_SERVER};
 
 describe('readAlerts', () => {
   it('turns an authentic alert into a booked charge dated by the email', () => {
