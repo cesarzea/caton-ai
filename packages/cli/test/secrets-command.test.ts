@@ -46,7 +46,7 @@ describe('caton secrets set, list and remove', () => {
     await run(['secrets', 'list'], context);
 
     expect(context.lines).toEqual([
-      '✓ Secret "jaunesistemas-imap" saved; refer to it as "age:jaunesistemas-imap"',
+      '✓ Secret "jaunesistemas-imap" saved; other values can use it as ${jaunesistemas-imap}',
       'jaunesistemas-imap',
       '✓ Secret "jaunesistemas-imap" removed',
       'No secret named "jaunesistemas-imap"',

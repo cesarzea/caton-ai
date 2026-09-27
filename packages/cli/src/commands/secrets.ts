@@ -13,7 +13,7 @@ const USAGE = [
   '  list                    Names of the stored secrets, never their values',
   '  remove <name>           Delete a secret',
   '',
-  'Refer to a secret in the configuration as "age:<name>".',
+  'Keys are plugin:instance:variable, or a shared name that other values use as ${name}.',
 ];
 
 function keySource(kind: string | undefined, path: string | undefined): KeySource | undefined {
@@ -48,7 +48,8 @@ async function set(context: CommandContext, name: string): Promise<number> {
     return 1;
   }
   await (await context.secrets.open()).set(name, value);
-  context.output.line(`✓ Secret "${name}" saved; refer to it as "age:${name}"`);
+  const usage = name.includes(':') ? '' : `; other values can use it as \${${name}}`;
+  context.output.line(`✓ Secret "${name}" saved${usage}`);
   return 0;
 }
 
