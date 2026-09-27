@@ -6,9 +6,8 @@ import {ApiError} from './api.ts';
 import type {Api} from './api.ts';
 import {Connections} from './components/Connections.tsx';
 import {CreateStore} from './components/CreateStore.tsx';
-import {Instances} from './components/Instances.tsx';
+import {Configured} from './components/Configured.tsx';
 import {Layout, Notice} from './components/Layout.tsx';
-import {Secrets} from './components/Secrets.tsx';
 import {Unlock} from './components/Unlock.tsx';
 import {text} from './text.ts';
 
@@ -67,12 +66,7 @@ function StorePanels({api, status, reload}: ReadyProps): ReactNode {
         </>
       );
     case 'unlocked':
-      return (
-        <>
-          <Instances api={api} connections={connections} onChanged={reload} />
-          <Secrets api={api} />
-        </>
-      );
+      return <Configured api={api} connections={connections} onChanged={reload} />;
   }
 }
 

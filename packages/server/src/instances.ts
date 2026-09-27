@@ -83,16 +83,13 @@ export async function updateInstance(
   sendJson(response, 204);
 }
 
-export function deleteInstance(
-  response: ServerResponse,
-  configuration: Configuration,
-  id: string,
-): void {
+/** Removes an instance from the configuration and returns it. */
+export function deleteInstance(configuration: Configuration, id: string): InstanceInfo {
   const existing = configuration.instances();
-  const remaining = existing.filter(instance => instance.id !== id);
-  if (remaining.length === existing.length) {
+  const removed = existing.find(instance => instance.id === id);
+  if (removed === undefined) {
     throw new HttpError(404, 'Not found');
   }
-  configuration.save(remaining);
-  sendJson(response, 204);
+  configuration.save(existing.filter(instance => instance !== removed));
+  return removed;
 }

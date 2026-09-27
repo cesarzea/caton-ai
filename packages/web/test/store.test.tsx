@@ -19,7 +19,7 @@ describe('creating the store', () => {
     await user.type(screen.getByLabelText('Repeat the passphrase'), 'short but now long');
     await user.click(screen.getByRole('button', {name: 'Create the store'}));
 
-    expect(await screen.findByRole('heading', {name: 'Secrets'})).toBeDefined();
+    expect(await screen.findByRole('heading', {name: 'Shared secrets'})).toBeDefined();
     expect(api.calls).toEqual([
       ['initStore', {source: 'passphrase', passphrase: 'short but now long'}],
     ]);
@@ -60,7 +60,7 @@ describe('unlocking the store', () => {
     await user.clear(screen.getByLabelText('Passphrase'));
     await user.type(screen.getByLabelText('Passphrase'), 'correct passphrase');
     await user.click(screen.getByRole('button', {name: 'Unlock'}));
-    expect(await screen.findByRole('heading', {name: 'Secrets'})).toBeDefined();
+    expect(await screen.findByRole('heading', {name: 'Shared secrets'})).toBeDefined();
   });
 
   it('says why a key file did not open the store, and locks again on request', async () => {
@@ -81,7 +81,7 @@ describe('locking the store', () => {
   it('offers no lock for a store that opens by itself', async () => {
     openApp(fakeApi({state: 'unlocked', keySource: 'file'}));
 
-    expect(await screen.findByRole('heading', {name: 'Secrets'})).toBeDefined();
+    expect(await screen.findByRole('heading', {name: 'Shared secrets'})).toBeDefined();
     expect(screen.queryByRole('button', {name: 'Lock'})).toBeNull();
   });
 });

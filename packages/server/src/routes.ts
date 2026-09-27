@@ -3,6 +3,7 @@ import type {IncomingMessage, ServerResponse} from 'node:http';
 import {sessionRequestSchema} from '@caton-ai/api';
 
 import type {ApiContext, Handler} from './api-context.ts';
+import type {StoreHolder} from './store-holder.ts';
 import {HttpError, jsonBody, sendJson} from './http.ts';
 import {
   initStore,
@@ -21,15 +22,29 @@ const INSTANCE_PATH = /^\/api\/instances\/([a-z0-9][a-z0-9-]*)$/u;
 async function instanceRoute(
   request: IncomingMessage,
   response: ServerResponse,
-  {plugins, configuration}: ApiContext,
+  {plugins, configuration, store}: ApiContext,
   id: string,
 ): Promise<void> {
   if (request.method === 'PUT') {
     await updateInstance(request, response, {plugins, configuration}, id);
   } else if (request.method === 'DELETE') {
-    deleteInstance(response, configuration, id);
+    const removed = deleteInstance(configuration, id);
+    await removeInstanceSecrets(store, `${removed.plugin}:${removed.id}:`);
+    sendJson(response, 204);
   } else {
     throw new HttpError(405, 'Method not allowed');
+  }
+}
+
+/** The secrets of a removed instance go with it, when the store is open; shared ones stay. */
+async function removeInstanceSecrets(store: StoreHolder, prefix: string): Promise<void> {
+  if (store.status().state !== 'unlocked') {
+    return;
+  }
+  const vault = store.vault();
+  await vault.reload();
+  for (const key of vault.names().filter(name => name.startsWith(prefix))) {
+    await vault.remove(key);
   }
 }
 
