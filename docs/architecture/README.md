@@ -77,10 +77,13 @@ flowchart TB
 | Notifications and alerts | Alert rules and delivery channels                                              |
 | Security                 | Secrets vault, audit log, plugin review pipeline                               |
 
-| Package          | Responsibility                                          | Status   |
-| ---------------- | ------------------------------------------------------- | -------- |
-| `@caton-ai/core` | Domain model shared by all packages (starts with Money) | Started  |
-| `@caton-ai/cli`  | Command-line entry point                                | Skeleton |
+| Package                    | Responsibility                                               | Status  |
+| -------------------------- | ------------------------------------------------------------ | ------- |
+| `@caton-ai/core`           | Domain model: money, accounts, transactions, the source port | Working |
+| `@caton-ai/enable-banking` | Enable Banking (PSD2) source for European banks              | Working |
+| `@caton-ai/ledger`         | Local SQLite ledger                                          | Working |
+| `@caton-ai/sync`           | Sync engine: incremental windows, failure recording          | Working |
+| `@caton-ai/cli`            | `caton` command line: sync, accounts, spend, status          | Working |
 
 ## 6. Runtime view — daily sync and watchdog (proposed)
 

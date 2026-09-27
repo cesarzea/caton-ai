@@ -64,3 +64,19 @@ describe('failures and atomicity', () => {
     ledger.close();
   });
 });
+
+describe('last successful run', () => {
+  it('ignores failures that happened after the last success', () => {
+    const ledger = openLedger(':memory:');
+    ledger.saveSync(snapshot([movement()]));
+    ledger.recordFailure({
+      source: 'millennium',
+      startedAt: new Date('2026-09-28T10:00:00Z'),
+      finishedAt: new Date('2026-09-28T10:00:01Z'),
+      error: 'HTTP 503',
+    });
+
+    expect(ledger.lastRun('millennium')?.outcome).toBe('failed');
+    expect(ledger.lastSuccessfulRun('millennium')?.finishedAt).toBe('2026-09-27T10:00:00.000Z');
+  });
+});

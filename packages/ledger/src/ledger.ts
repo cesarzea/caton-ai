@@ -13,7 +13,9 @@ export interface Ledger {
   accounts(): Account[];
   transactions(fromDate: string): Transaction[];
   latestBalances(): Balance[];
+  /** Latest run of a source, successful or not: what decides whether totals are trustworthy. */
   lastRun(source: string): SyncRun | null;
+  lastSuccessfulRun(source: string): SyncRun | null;
   close(): void;
 }
 
@@ -30,7 +32,8 @@ export function openLedger(path: string): Ledger {
     accounts: () => readAccounts(database),
     transactions: fromDate => readTransactions(database, fromDate),
     latestBalances: () => readLatestBalances(database),
-    lastRun: source => readLastRun(database, source),
+    lastRun: source => readLastRun(database, source, false),
+    lastSuccessfulRun: source => readLastRun(database, source, true),
     close: () => {
       database.close();
     },
