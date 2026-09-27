@@ -46,6 +46,7 @@ export function AddSecret({onSave}: Readonly<{onSave: Save}>): ReactNode {
   return (
     <form className="inline-form" onSubmit={form.submit} aria-busy={form.busy}>
       <h3 className="form-title">{text.secrets.addTitle}</h3>
+      <p className="muted form-title">{text.secrets.addIntro}</p>
       <Field id="secret-name" label={text.secrets.name} value={form.name} onChange={form.setName} />
       <Field
         id="secret-value"
