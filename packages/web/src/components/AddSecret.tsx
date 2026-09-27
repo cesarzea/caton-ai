@@ -6,6 +6,7 @@ import {onSubmit} from '../forms.ts';
 import {text} from '../text.ts';
 import {useAction} from '../use-action.ts';
 import {Field} from './Field.tsx';
+import {FileLoader} from './FileLoader.tsx';
 import {Notice} from './Layout.tsx';
 
 export type Save = (name: string, value: string) => Promise<void>;
@@ -14,18 +15,29 @@ function useSecretForm(onSave: Save) {
   const [name, setName] = useState('');
   const [value, setValue] = useState('');
   const {busy, error, run, fail} = useAction();
-  const submit = onSubmit(() => {
+  const save = (content: string): void => {
     if (!SHARED_SECRET_NAME.test(name)) {
       fail(text.secrets.invalidName);
       return;
     }
     void run(async () => {
-      await onSave(name, value);
+      await onSave(name, content);
       setName('');
       setValue('');
     });
-  });
-  return {name, setName, value, setValue, busy, error, submit};
+  };
+  return {
+    name,
+    setName,
+    value,
+    setValue,
+    busy,
+    error,
+    save,
+    submit: onSubmit(() => {
+      save(value);
+    }),
+  };
 }
 
 /** A secret the configuration does not refer to yet. */
@@ -49,6 +61,7 @@ export function AddSecret({onSave}: Readonly<{onSave: Save}>): ReactNode {
       >
         {text.secrets.save}
       </button>
+      <FileLoader label={text.configuration.loadFile} onLoad={form.save} />
       <Notice message={form.error} />
     </form>
   );
