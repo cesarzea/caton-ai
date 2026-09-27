@@ -1,0 +1,26 @@
+name: Feature request
+description: Propose a new capability or plugin idea.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What problem would this solve, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Where does it belong?
+      options:
+        - Core
+        - Official plugin
+        - Third-party plugin
+        - Not sure
+    validations:
+      required: true

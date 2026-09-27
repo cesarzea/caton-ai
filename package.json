@@ -1,0 +1,48 @@
+{
+  "name": "caton-ai",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Local-first, plugin-based financial watchdog for individuals and small businesses.",
+  "license": "MIT",
+  "author": "César Zea",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cesarzea/caton-ai.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run deps && npm run knip && npm run test",
+    "typecheck": "tsc --project tsconfig.json",
+    "lint": "eslint --max-warnings 0 .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "deps": "depcruise packages --config .dependency-cruiser.cjs",
+    "knip": "knip",
+    "test": "vitest run --coverage",
+    "start": "node packages/cli/src/main.ts",
+    "lint:commit": "commitlint"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "21.2.3",
+    "@commitlint/config-conventional": "21.2.3",
+    "@eslint/js": "10.0.1",
+    "@tsconfig/strictest": "2.0.8",
+    "@types/node": "24.19.0",
+    "@vitest/coverage-v8": "5.0.2",
+    "dependency-cruiser": "18.4.0",
+    "eslint": "10.11.0",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-sonarjs": "4.2.1",
+    "knip": "6.38.0",
+    "prettier": "3.9.9",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.70.1",
+    "vitest": "5.0.2"
+  }
+}

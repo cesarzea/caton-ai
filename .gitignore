@@ -1,0 +1,11 @@
+node_modules/
+coverage/
+*.log
+.DS_Store
+
+# Secrets never belong in the repository
+.env
+.env.*
+!.env.example
+*.pem
+*.key

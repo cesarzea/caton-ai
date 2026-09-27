@@ -1,0 +1,14 @@
+{
+  "name": "@caton-ai/cli",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Catón AI command-line entry point.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@caton-ai/core": "0.0.0"
+  }
+}
