@@ -50,6 +50,7 @@ export const text = {
     useShared: 'Or use a shared secret',
     noShared: 'Choose…',
     listHint: 'Separate values with commas.',
+    needs: (labels: readonly string[]) => `Needs: ${labels.join(', ')}`,
     loadFile: 'Load from a file',
   },
   connections: {
@@ -59,13 +60,15 @@ export const text = {
     outcome: {ok: 'Synced', failed: 'Failing', never: 'Never synced'},
   },
   secrets: {
-    title: 'Secrets',
+    title: 'Shared secrets',
     intro:
-      'Values are kept encrypted and can be replaced, never shown. To share one secret between several connections, save it once under a name of your choice and enter ${that-name} as their value.',
-    empty: 'No secrets yet.',
+      'Values several connections can use, such as one app password for several mailboxes. Each connection keeps a reference to the shared secret, never a copy: replacing it here updates them all. Values are encrypted and never shown.',
+    empty: 'No shared secrets yet.',
     missing: 'Missing',
     stored: 'Stored',
     macro: (target: string) => `Uses the shared secret ${target}`,
+    macroMissing: (target: string) => `Uses the shared secret ${target}, which is missing`,
+    ownValue: 'Own value saved',
     usedBy: (owners: readonly string[]) => `Used by ${owners.join(', ')}`,
     unused: 'Not used by any connection',
     valueOf: (name: string) => `Value of ${name}`,
@@ -77,8 +80,7 @@ export const text = {
     confirm: 'Confirm removal',
     confirmUsed: (owners: readonly string[]) => `Remove, breaking ${owners.join(', ')}`,
     addTitle: 'Add a shared secret',
-    addIntro:
-      'A value several connections can use, such as one app password for several mailboxes. Name it, then choose it in each connection under "Or use a shared secret".',
+    addIntro: 'Name it, then choose it in each connection under "Or use a shared secret".',
     name: 'Name',
     value: 'Value',
     save: 'Save secret',

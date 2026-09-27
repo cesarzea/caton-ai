@@ -112,17 +112,30 @@ describe('connections', () => {
   });
 });
 
-describe('shared secrets', () => {
-  it('show which shared secret an instance secret stands for', async () => {
+describe('secrets of a connection', () => {
+  it('show in its form whether they use a shared secret, and the table says what is missing', async () => {
     const api = fakeApi({state: 'unlocked', keySource: 'passphrase'});
-    api.required.set('email-alerts:amex:imap-password', ['Amex']);
     api.stored.set('email-alerts:amex:imap-password', '${work-imap}');
-    openApp(api);
+    const {user} = openApp(api);
 
+    expect(await screen.findByText('Needs: App password')).toBeDefined();
+    await user.click(screen.getByRole('button', {name: 'Edit Amex'}));
+    expect(screen.getByText('Uses the shared secret work-imap, which is missing')).toBeDefined();
+  });
+
+  it('are never listed among the shared secrets', async () => {
+    const api = fakeApi({state: 'unlocked', keySource: 'passphrase'});
+    api.stored.set('email-alerts:amex:imap-password', '${work-imap}');
+    api.stored.set('work-imap', 'pw');
+    const {user} = openApp(api);
+
+    expect(within(await rowOf('work-imap')).getByText('Stored')).toBeDefined();
+    expect(screen.queryByText('email-alerts:amex:imap-password')).toBeNull();
+    expect(screen.queryByText(/^Needs:/u)).toBeNull();
+    await user.click(screen.getByRole('button', {name: 'Edit Amex'}));
+    expect(screen.getByText('Uses the shared secret work-imap')).toBeDefined();
     expect(
-      within(await rowOf('email-alerts:amex:imap-password')).getByText(
-        'Uses the shared secret work-imap',
-      ),
-    ).toBeDefined();
+      screen.getByRole<HTMLSelectElement>('combobox', {name: 'Or use a shared secret'}).value,
+    ).toBe('work-imap');
   });
 });

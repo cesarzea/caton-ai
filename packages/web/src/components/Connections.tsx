@@ -10,7 +10,10 @@ const when = (iso: string | null): string =>
         new Date(iso),
       );
 
-type Editable = Readonly<{onEdit?: (id: string) => void}>;
+type Editable = Readonly<{
+  onEdit?: (id: string) => void;
+  needs?: ReadonlyMap<string, readonly string[]>;
+}>;
 
 function EditButton({
   connection,
@@ -32,7 +35,25 @@ function EditButton({
   );
 }
 
-function Row({connection, onEdit}: Readonly<{connection: ConnectionStatus}> & Editable): ReactNode {
+/** What stops a connection: required variables still missing, then the last sync error. */
+function Problem({
+  connection,
+  missing,
+}: Readonly<{connection: ConnectionStatus; missing: readonly string[] | undefined}>): ReactNode {
+  return (
+    <td className="problem">
+      {missing === undefined ? null : <strong>{text.configuration.needs(missing)}</strong>}
+      {missing !== undefined && connection.error !== null ? <br /> : null}
+      {connection.error ?? ''}
+    </td>
+  );
+}
+
+function Row({
+  connection,
+  onEdit,
+  needs,
+}: Readonly<{connection: ConnectionStatus}> & Editable): ReactNode {
   return (
     <tr>
       <th scope="row">{connection.title}</th>
@@ -43,7 +64,7 @@ function Row({connection, onEdit}: Readonly<{connection: ConnectionStatus}> & Ed
         </span>
       </td>
       <td>{when(connection.lastRunAt)}</td>
-      <td className="problem">{connection.error ?? ''}</td>
+      <Problem connection={connection} missing={needs?.get(connection.id)} />
       {onEdit === undefined ? null : <EditButton connection={connection} onEdit={onEdit} />}
     </tr>
   );
@@ -52,8 +73,12 @@ function Row({connection, onEdit}: Readonly<{connection: ConnectionStatus}> & Ed
 function Table({
   connections,
   onEdit,
+  needs,
 }: Readonly<{connections: readonly ConnectionStatus[]}> & Editable): ReactNode {
-  const editable = onEdit === undefined ? {} : {onEdit};
+  const editable = {
+    ...(onEdit === undefined ? {} : {onEdit}),
+    ...(needs === undefined ? {} : {needs}),
+  };
   return (
     <table className="table">
       <thead>
@@ -78,13 +103,15 @@ function Table({
 type Props = Readonly<{
   connections: readonly ConnectionStatus[];
   onAdd?: () => void;
-  children?: ReactNode;
 }> &
   Editable;
 
 /** The state of every connection; editable once the secret store is open. */
-export function Connections({connections, onEdit, onAdd, children}: Props): ReactNode {
-  const editable = onEdit === undefined ? {} : {onEdit};
+export function Connections({connections, onEdit, needs, onAdd}: Props): ReactNode {
+  const editable = {
+    ...(onEdit === undefined ? {} : {onEdit}),
+    ...(needs === undefined ? {} : {needs}),
+  };
   return (
     <section className="card">
       <div className="card-heading">
@@ -100,7 +127,6 @@ export function Connections({connections, onEdit, onAdd, children}: Props): Reac
       ) : (
         <Table connections={connections} {...editable} />
       )}
-      {children}
     </section>
   );
 }

@@ -1,7 +1,9 @@
-import {instanceListSchema, pluginListSchema} from '@caton-ai/api';
+import {join} from 'node:path';
+
+import {instanceListSchema, pluginListSchema, secretListSchema} from '@caton-ai/api';
 import {describe, expect, it} from 'vitest';
 
-import {call, signIn, started} from './harness.ts';
+import {call, signIn, started, temporaryDirectory} from './harness.ts';
 import {PLUGINS} from './plugins-fixture.ts';
 import type {Reply} from './harness.ts';
 
@@ -76,5 +78,27 @@ describe('instance requests', () => {
     expect((await api('DELETE', '/api/instances/amex')).status).toBe(404);
     expect((await api('PUT', '/api/instances/amex', {title: 'X', settings: {}})).status).toBe(404);
     expect((await api('GET', '/api/instances/amex')).status).toBe(405);
+  });
+});
+
+describe('removing an instance', () => {
+  it('removes its own secrets and keeps shared ones', async () => {
+    const running = await started();
+    const cookie = await signIn(running);
+    const api: Api = (method, path, body) =>
+      call(running.port, {method, path, body, headers: {cookie}});
+    await api('POST', '/api/store/init', {
+      source: 'file',
+      path: join(temporaryDirectory(), 'key.txt'),
+    });
+    await api('POST', '/api/instances', {title: 'Amex', plugin: 'email-alerts', settings: {}});
+    await api('PUT', `/api/secrets/${encodeURIComponent('email-alerts:amex:imap-password')}`, {
+      value: '${work-imap}',
+    });
+    await api('PUT', '/api/secrets/work-imap', {value: 'pw'});
+
+    expect((await api('DELETE', '/api/instances/amex')).status).toBe(204);
+    const {secrets} = secretListSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body));
+    expect(secrets.filter(entry => entry.stored).map(entry => entry.name)).toEqual(['work-imap']);
   });
 });
