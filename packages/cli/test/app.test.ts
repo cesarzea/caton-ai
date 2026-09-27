@@ -23,7 +23,7 @@ describe('caton accounts and spend', () => {
     expect(context.lines.slice(1)).toEqual([
       'Institution   Account          Balance',
       'Example Bank  Current account  €1,234.56',
-      'Month    Spent',
+      'Month    Outflows',
       '2026-09  €160.00',
     ]);
   });

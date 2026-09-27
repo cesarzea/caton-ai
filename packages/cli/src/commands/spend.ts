@@ -10,14 +10,17 @@ function firstDayMonthsAgo(now: Date, months: number): string {
   return start.toISOString().slice(0, 10);
 }
 
-/** Money that left the accounts per month (cash basis); warns when a source is failing. */
+/**
+ * Money that left the accounts per month (cash basis), including transfers between the user's own
+ * accounts until transfer detection exists. Warns when a source is failing.
+ */
 export function spendCommand(context: CommandContext, months: number): number {
   const ledger = context.ledger();
   const totals = monthlyOutflows(ledger.transactions(firstDayMonthsAgo(context.now(), months)));
   const untrusted = untrustedConnections(context, ledger);
   ledger.close();
   const rows = totals.map(({month, total}) => [month, formatMoney(total, context.locale)]);
-  table([['Month', 'Spent'], ...rows]).forEach(line => {
+  table([['Month', 'Outflows'], ...rows]).forEach(line => {
     context.output.line(line);
   });
   if (untrusted.length > 0) {

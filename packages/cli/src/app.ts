@@ -9,7 +9,8 @@ const USAGE = [
   '',
   '  sync             Fetch accounts, movements and balances from every connection',
   '  accounts         List accounts with their latest balance',
-  '  spend [months]   Money spent per month, cash basis (default: 3 months)',
+  '  spend [months]   Money leaving your accounts per month, cash basis (default: 3 months);',
+  '                   includes transfers between your own accounts',
   '  status           Latest sync of every connection',
 ];
 
