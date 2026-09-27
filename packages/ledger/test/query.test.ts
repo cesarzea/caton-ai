@@ -71,3 +71,14 @@ describe('searchTransactions filters', () => {
     expect(page.total).toBe(4);
   });
 });
+
+describe('searchTransactions text', () => {
+  it('ignores accents and non-ASCII case, as Spanish and Portuguese descriptions need', () => {
+    const ledger = openLedger(':memory:');
+    ledger.saveSync(snapshot([movement({id: 'm-cafe', description: 'COMPRA CAFETERÍA SÃO JOÃO'})]));
+
+    for (const text of ['cafeteria', 'Cafetería', 'sao joao', 'SÃO']) {
+      expect(ids(ledger, {limit: 10, text})).toEqual(['m-cafe']);
+    }
+  });
+});

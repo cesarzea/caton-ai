@@ -2,6 +2,7 @@ import {currencyCode, money} from '@caton-ai/core';
 import type {Account, TransactionSource} from '@caton-ai/core';
 import {openLedger} from '@caton-ai/ledger';
 import type {Ledger} from '@caton-ai/ledger';
+import type {ServerContext} from '@caton-ai/mcp';
 
 import type {CommandContext} from '../src/context.ts';
 
@@ -48,6 +49,7 @@ export const failingSource: TransactionSource = {
 export interface TestContext extends CommandContext {
   readonly lines: string[];
   readonly errors: string[];
+  readonly served: ServerContext[];
 }
 
 /** A context over one shared in-memory ledger whose `close` is a no-op. */
@@ -56,17 +58,21 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
   const ledger: Ledger = {...shared, close: () => undefined};
   const lines: string[] = [];
   const errors: string[] = [];
+  const served: ServerContext[] = [];
   return {
     config: () => ({
       enableBanking: {appId: 'app', privateKeyPath: '~/key.pem'},
       connections: Object.keys(sources).map(name => ({name, sessionId: `session-${name}`})),
     }),
     ledger: () => ledger,
+    readOnlyLedger: () => ledger,
+    serveMcp: server => served.push(server),
     source: connection => sources[connection.name] ?? workingSource,
     output: {line: text => lines.push(text), error: text => errors.push(text)},
     now: () => new Date('2026-09-27T10:00:00Z'),
     locale: 'en-US',
     lines,
     errors,
+    served,
   };
 }

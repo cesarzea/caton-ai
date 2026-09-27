@@ -1,19 +1,20 @@
 {
-  "name": "@caton-ai/cli",
+  "name": "@caton-ai/mcp",
   "version": "0.0.0",
   "private": true,
-  "description": "Catón AI command-line entry point.",
+  "description": "Catón AI read-only MCP server over the local ledger.",
   "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
+  "exports": {
+    ".": "./src/index.ts"
+  },
   "dependencies": {
     "@caton-ai/core": "0.0.0",
-    "@caton-ai/enable-banking": "0.0.0",
     "@caton-ai/ledger": "0.0.0",
-    "@caton-ai/mcp": "0.0.0",
-    "@caton-ai/sync": "0.0.0",
+    "@modelcontextprotocol/server": "2.1.0",
     "zod": "4.6.5"
   },
   "devDependencies": {

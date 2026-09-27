@@ -1,5 +1,6 @@
 import type {TransactionSource} from '@caton-ai/core';
-import type {Ledger} from '@caton-ai/ledger';
+import type {Ledger, LedgerReader} from '@caton-ai/ledger';
+import type {ServerContext} from '@caton-ai/mcp';
 
 import type {CatonConfig, Connection} from './config.ts';
 import type {Output} from './output.ts';
@@ -8,6 +9,9 @@ import type {Output} from './output.ts';
 export interface CommandContext {
   readonly config: () => CatonConfig;
   readonly ledger: () => Ledger;
+  readonly readOnlyLedger: () => LedgerReader;
+  /** Serves the MCP server over stdio; it keeps running after the command returns. */
+  readonly serveMcp: (context: ServerContext) => void;
   readonly source: (connection: Connection) => TransactionSource;
   readonly output: Output;
   readonly now: () => Date;

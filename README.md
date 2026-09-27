@@ -13,8 +13,8 @@ watch it for you: budgets, goals, cash-flow forecasts, and alerts such as _"tell
 Anthropic spend goes over $20"_.
 
 > **Status: pre-alpha.** A first command-line version syncs European bank accounts through
-> Enable Banking into a local ledger and reports monthly outflows. Plugins, agents, alerts and the web
-> UI are not built yet.
+> Enable Banking into a local ledger, reports monthly outflows and serves the ledger read-only to AI
+> assistants over MCP. Plugins, agents, alerts and the web UI are not built yet.
 
 ## Why the name
 
@@ -108,6 +108,45 @@ npm start -- status     # last sync of every connection
 Outflows still include transfers between your own accounts; transfer detection and
 categorisation are next. Unattended PSD2 access allows only a few requests per account per day
 (the exact quota is still to be verified), so sync at most once or twice a day. Current limitations are tracked in [ADR 0012](docs/adr/0012-interim-local-secrets-and-ledger-storage.md).
+
+## Ask your AI assistant (MCP)
+
+`caton mcp` serves the ledger **read-only** over the
+[Model Context Protocol](https://modelcontextprotocol.io) (specification 2026-07-28; hosts still on
+2025-era versions are served too). It never contacts a bank, amounts are exact decimals, and every
+answer says whether the figures are complete. See [ADR 0013](docs/adr/0013-read-only-mcp-server.md).
+
+| Tool                 | What it answers                                                         |
+| -------------------- | ----------------------------------------------------------------------- |
+| `sync_status`        | When each bank connection last synced, and why it failed                |
+| `list_accounts`      | Accounts and their latest balances                                      |
+| `list_transactions`  | Movements by date, account, direction or text, one page at a time       |
+| `monthly_outflows`   | Money that left the accounts per month (includes own-account transfers) |
+| `top_counterparties` | Who received the most money                                             |
+
+Register it in your MCP host with absolute paths; the host must start Node.js 24 or newer, which
+may not be the `node` on its `PATH`. For Claude Code:
+
+```sh
+claude mcp add caton-ai -- /path/to/node24/bin/node /path/to/caton-ai/packages/cli/src/main.ts mcp
+```
+
+For hosts configured with JSON, such as Claude Desktop:
+
+```json
+{
+  "mcpServers": {
+    "caton-ai": {
+      "command": "/path/to/node24/bin/node",
+      "args": ["/path/to/caton-ai/packages/cli/src/main.ts", "mcp"]
+    }
+  }
+}
+```
+
+Account names, descriptions and counterparties come from banks and third parties; the server
+tells the assistant to treat them as data, never as instructions. With a hosted model, what the
+tools return is sent to its provider.
 
 ## Development
 

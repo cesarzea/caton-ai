@@ -4,18 +4,18 @@ import type {Transaction} from '@caton-ai/core';
 
 import {transactionFrom} from './rows.ts';
 
-/** Filters for a bounded search of movements; every filter is optional except the page size. */
+/** Filters for a bounded search of movements; an absent or undefined filter is not applied. */
 export interface TransactionQuery {
   /** Inclusive ISO dates, compared with the booking date (operation date while pending). */
-  readonly from?: string;
-  readonly to?: string;
-  readonly accountId?: string;
+  readonly from?: string | undefined;
+  readonly to?: string | undefined;
+  readonly accountId?: string | undefined;
   /** `in` for money received, `out` for money that left the account. */
-  readonly direction?: 'in' | 'out';
-  /** Case-insensitive text searched in the description and the counterparty. */
-  readonly text?: string;
+  readonly direction?: 'in' | 'out' | undefined;
+  /** Text searched in the description and the counterparty, ignoring case and accents. */
+  readonly text?: string | undefined;
   readonly limit: number;
-  readonly offset?: number;
+  readonly offset?: number | undefined;
 }
 
 /** One page of matching movements, newest first, and how many match in total. */
@@ -37,7 +37,7 @@ const MATCHING = `
       OR ($direction = 'in' AND amount_minor > 0)
       OR ($direction = 'out' AND amount_minor < 0))
     AND ($text IS NULL
-      OR instr(lower(description || ' ' || COALESCE(counterparty, '')), lower($text)) > 0)`;
+      OR instr(fold(description || ' ' || COALESCE(counterparty, '')), fold($text)) > 0)`;
 
 const PAGE_SQL = `${MATCHING.replace('%COLUMNS%', '*')}
   ORDER BY effective_date DESC, id LIMIT $limit OFFSET $offset`;
