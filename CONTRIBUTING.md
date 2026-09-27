@@ -43,6 +43,9 @@ propose the change in its own pull request with an Architecture Decision Record.
   [Conventional Commits](https://www.conventionalcommits.org/)** (`feat:`, `fix:`, `docs:`,
   `refactor:`, `test:`, `build:`, `ci:`, `chore:`). CI validates it.
 - Keep pull requests focused on one change.
+- Required status checks are listed by name in the `main` ruleset (for example
+  `check (node 24)`). Changing a job name or the Node matrix requires updating the ruleset
+  first; otherwise every merge is blocked.
 
 ## Definition of done
 
