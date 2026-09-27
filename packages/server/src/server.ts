@@ -10,6 +10,7 @@ import {placeholderAssets} from './assets.ts';
 import {guardRequest} from './guard.ts';
 import {HttpError, secureHeaders, sendJson} from './http.ts';
 import {apiRoute} from './routes.ts';
+import type {SecretReferences} from './secret-list.ts';
 import type {ApiContext} from './routes.ts';
 import {createSessions} from './sessions.ts';
 import {createStoreHolder} from './store-holder.ts';
@@ -23,6 +24,8 @@ export interface ServerOptions {
   readonly secretsDirectory: string;
   readonly credentials: CredentialStore;
   readonly connections: () => ConnectionStatus[];
+  /** Which connections and plugins refer to each secret of the store. */
+  readonly secretReferences: () => SecretReferences;
   /** The built interface; a placeholder page when `null`. */
   readonly assets: ReadonlyMap<string, Asset> | null;
   /** Unexpected errors, out of band. Request bodies are never logged. */
@@ -106,7 +109,12 @@ export async function startServer(options: ServerOptions): Promise<RunningServer
     ...(options.scryptWorkFactor === undefined ? {} : {scryptWorkFactor: options.scryptWorkFactor}),
   });
   await store.autoUnlock();
-  const context: ApiContext = {sessions: createSessions(), store, connections: options.connections};
+  const context: ApiContext = {
+    sessions: createSessions(),
+    store,
+    connections: options.connections,
+    secretReferences: options.secretReferences,
+  };
   let port = options.port;
   const server = createServer((request, response) => {
     void handler(options, context, () => port)(request, response);

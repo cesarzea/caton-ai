@@ -1,7 +1,7 @@
 import {rmSync} from 'node:fs';
 import {join} from 'node:path';
 
-import {secretNamesSchema, statusSchema} from '@caton-ai/api';
+import {secretListSchema, statusSchema} from '@caton-ai/api';
 import type {Status} from '@caton-ai/api';
 import {describe, expect, it} from 'vitest';
 
@@ -52,8 +52,11 @@ describe('secrets', () => {
     await api('POST', '/api/store/init', keyFile());
 
     expect((await api('PUT', '/api/secrets/imap', {value: 'app-password-value'})).status).toBe(204);
-    const names = secretNamesSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body));
-    expect(names).toEqual({names: ['imap']});
+    const list = secretListSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body));
+    expect(list.secrets).toEqual([
+      {name: 'work-imap', stored: false, usedBy: ['amex']},
+      {name: 'imap', stored: true, usedBy: []},
+    ]);
     expect((await api('DELETE', '/api/secrets/imap')).status).toBe(204);
     expect((await api('DELETE', '/api/secrets/imap')).status).toBe(404);
     expect((await api('GET', '/api/secrets/imap')).status).toBe(405);

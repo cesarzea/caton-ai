@@ -104,7 +104,9 @@ describe('failures', () => {
     ]);
     expect(running.logged[0]).toContain('/Users/someone/secret');
   });
+});
 
+describe('start-up failures', () => {
   it('say clearly when the port is taken', async () => {
     const {port, secretsDirectory} = await started();
     const again = startServer({
@@ -112,6 +114,7 @@ describe('failures', () => {
       secretsDirectory,
       credentials: {read: () => '', write: () => undefined},
       connections: () => [],
+      secretReferences: () => new Map(),
       assets: null,
       log: () => undefined,
     });

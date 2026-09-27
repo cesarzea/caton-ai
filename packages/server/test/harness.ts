@@ -62,6 +62,7 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     secretsDirectory,
     credentials: memoryCredentials(),
     connections: () => CONNECTIONS,
+    secretReferences: () => new Map([['work-imap', ['amex']]]),
     assets: null,
     log: message => {
       logged.push(message);
