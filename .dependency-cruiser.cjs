@@ -55,6 +55,13 @@ module.exports = {
       to: {path: '^plugins/'},
     },
     {
+      name: 'web-uses-only-the-api-contract',
+      severity: 'error',
+      comment: 'The browser code talks to Catón AI only through the shared API contract.',
+      from: {path: '^packages/web/'},
+      to: {path: '^(packages|plugins)/', pathNot: ['^packages/web/', '^packages/api/']},
+    },
+    {
       name: 'no-test-code-in-production',
       severity: 'error',
       from: {path: '^(packages|plugins)/[^/]+/src/'},
@@ -63,7 +70,10 @@ module.exports = {
     {
       name: 'no-orphans',
       severity: 'error',
-      from: {orphan: true, pathNot: ['[.]d[.]ts$', '^packages/[^/]+/src/main[.]ts$']},
+      from: {
+        orphan: true,
+        pathNot: ['[.]d[.]ts$', '^packages/[^/]+/src/main[.]tsx?$', '[.]config[.]ts$'],
+      },
       to: {},
     },
     {
@@ -88,6 +98,7 @@ module.exports = {
   ],
   options: {
     doNotFollow: {path: 'node_modules'},
+    exclude: {path: '(^|/)dist/'},
     combinedDependencies: true,
     tsPreCompilationDeps: true,
     tsConfig: {fileName: 'tsconfig.json'},

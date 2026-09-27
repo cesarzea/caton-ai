@@ -6,6 +6,8 @@
     "packages/*/test/**/*.ts",
     "plugins/*/src/**/*.ts",
     "plugins/*/test/**/*.ts",
-    "*.config.ts"
-  ]
+    "*.config.ts",
+    "scripts/**/*.ts"
+  ],
+  "exclude": ["packages/web"]
 }

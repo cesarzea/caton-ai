@@ -107,8 +107,12 @@ written in the file. See [ADR 0014](docs/adr/0014-connector-plugin-contract.md).
 The web interface runs on this computer only, and is where secrets are entered:
 
 ```sh
+npm run build           # builds the web interface once
 npm start -- serve      # prints a one-time link to http://127.0.0.1:7170
 ```
+
+There you create the encrypted secret store, choosing where its key lives, and add the passwords
+and keys that connections refer to as `age:<name>`.
 
 See [ADR 0018](docs/adr/0018-local-web-interface.md) for how it is protected.
 
@@ -179,7 +183,7 @@ Requires Node.js 24 LTS or newer.
 
 ```sh
 npm ci --ignore-scripts
-npm run check   # types, lint, format, architecture rules, dead code, tests + coverage
+npm run check   # types, lint, format, architecture rules, dead code, web build, tests + coverage
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the quality gates and conventions.
