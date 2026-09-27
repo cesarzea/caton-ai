@@ -33,7 +33,7 @@
     "@commitlint/config-conventional": "21.2.3",
     "@eslint/js": "10.0.1",
     "@tsconfig/strictest": "2.0.8",
-    "@types/node": "24.19.0",
+    "@types/node": "26.6.2",
     "@vitest/coverage-v8": "5.0.2",
     "dependency-cruiser": "18.4.0",
     "eslint": "10.11.0",
