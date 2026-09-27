@@ -1,4 +1,5 @@
 import {accountsCommand} from './commands/accounts.ts';
+import {mcpCommand} from './commands/mcp.ts';
 import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
@@ -12,6 +13,7 @@ const USAGE = [
   '  spend [months]   Money leaving your accounts per month, cash basis (default: 3 months);',
   '                   includes transfers between your own accounts',
   '  status           Latest sync of every connection',
+  '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
 ];
 
 /** Runs one CLI command and returns the process exit code. */
@@ -26,6 +28,8 @@ export async function run(args: readonly string[], context: CommandContext): Pro
       return spendCommand(context, monthsArgument(argument));
     case 'status':
       return statusCommand(context);
+    case 'mcp':
+      return mcpCommand(context);
     case undefined:
     case 'help':
       return usage(context, 0);

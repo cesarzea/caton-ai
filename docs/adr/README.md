@@ -17,6 +17,8 @@ discussion are marked **Proposed**.
 | [0009](0009-configurable-llm-provider.md)                | Configurable LLM provider                       | Accepted |
 | [0010](0010-no-email-ingestion-in-core.md)               | No email ingestion in the core                  | Accepted |
 | [0011](0011-engineering-quality-gates.md)                | Engineering standards and quality gates         | Accepted |
+| [0012](0012-interim-local-secrets-and-ledger-storage.md) | Interim storage of local secrets and the ledger | Proposed |
+| [0013](0013-read-only-mcp-server.md)                     | Read-only MCP server over the ledger            | Proposed |
 
 ## Writing a new ADR
 

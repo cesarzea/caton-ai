@@ -83,7 +83,8 @@ flowchart TB
 | `@caton-ai/enable-banking` | Enable Banking (PSD2) source for European banks              | Working |
 | `@caton-ai/ledger`         | Local SQLite ledger                                          | Working |
 | `@caton-ai/sync`           | Sync engine: incremental windows, failure recording          | Working |
-| `@caton-ai/cli`            | `caton` command line: sync, accounts, spend, status          | Working |
+| `@caton-ai/mcp`            | Read-only MCP server over the ledger (stdio)                 | Working |
+| `@caton-ai/cli`            | `caton` command line: sync, accounts, spend, status, mcp     | Working |
 
 ## 6. Runtime view — daily sync and watchdog (proposed)
 

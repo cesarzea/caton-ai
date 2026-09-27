@@ -2,7 +2,8 @@ import {mkdirSync} from 'node:fs';
 import {join} from 'node:path';
 
 import {createEnableBankingSource} from '@caton-ai/enable-banking';
-import {openLedger} from '@caton-ai/ledger';
+import {openLedger, openLedgerReadOnly} from '@caton-ai/ledger';
+import {serveOverStdio} from '@caton-ai/mcp';
 
 import {run} from './app.ts';
 import {loadConfig, readPrivateKey} from './config.ts';
@@ -13,6 +14,7 @@ import {configDirectory, dataDirectory} from './paths.ts';
 let loadedConfig: CatonConfig | undefined;
 const config = (): CatonConfig => (loadedConfig ??= loadConfig(configDirectory(process.env)));
 const output = terminalOutput(process.stdout, process.stderr);
+const ledgerPath = (): string => join(dataDirectory(process.env), 'ledger.sqlite');
 
 try {
   process.exitCode = await run(process.argv.slice(2), {
@@ -20,8 +22,10 @@ try {
     ledger: () => {
       const directory = dataDirectory(process.env);
       mkdirSync(directory, {recursive: true, mode: 0o700});
-      return openLedger(join(directory, 'ledger.sqlite'));
+      return openLedger(ledgerPath());
     },
+    readOnlyLedger: () => openLedgerReadOnly(ledgerPath()),
+    serveMcp: serveOverStdio,
     source: connection => {
       const {enableBanking} = config();
       return createEnableBankingSource({

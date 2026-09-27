@@ -4,11 +4,11 @@
     ".": {
       "entry": ["*.config.{js,ts}"]
     },
-    "packages/core": {
+    "packages/cli": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
-    "packages/cli": {
+    "packages/core": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
@@ -17,6 +17,10 @@
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/ledger": {
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/mcp": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
