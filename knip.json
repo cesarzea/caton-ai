@@ -4,6 +4,9 @@
     ".": {
       "entry": ["*.config.{js,ts}"]
     },
+    "packages/api": {
+      "project": ["src/**/*.ts"]
+    },
     "packages/cli": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
@@ -21,6 +24,10 @@
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },
     "packages/secrets": {
+      "entry": ["test/**/*.test.ts"],
+      "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/server": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
     },

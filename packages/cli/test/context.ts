@@ -70,6 +70,11 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
     ledger: () => ledger,
     readOnlyLedger: () => ledger,
     serveMcp: server => served.push(server),
+    startWeb: port =>
+      Promise.resolve({
+        origin: `http://127.0.0.1:${String(port)}`,
+        accessLink: () => `http://127.0.0.1:${String(port)}/#token=one-time`,
+      }),
     source: connection => sources[connection.name] ?? workingSource,
     output: {line: text => lines.push(text), error: text => errors.push(text)},
     now: () => new Date('2026-09-27T10:00:00Z'),

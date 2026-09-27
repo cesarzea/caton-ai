@@ -19,6 +19,8 @@ export interface CommandContext {
     readonly init: (key: KeySource) => Promise<void>;
     readonly open: () => Promise<Vault>;
   };
+  /** Starts the local web interface on the loopback address. */
+  readonly startWeb: (port: number) => Promise<{readonly origin: string; accessLink(): string}>;
   /** A secret value typed without echo, or piped on stdin. */
   readonly readSecretValue: (question: string) => Promise<string>;
   readonly output: Output;
