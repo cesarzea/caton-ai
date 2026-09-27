@@ -33,12 +33,22 @@ export function addMoney(left: Money, right: Money): Money {
   return money(left.minorUnits + right.minorUnits, left.currency);
 }
 
+export function negateMoney(amount: Money): Money {
+  // Adding 0 turns -0 into 0 so that equal amounts compare equal.
+  return money(-amount.minorUnits + 0, amount.currency);
+}
+
+/** Number of minor-unit digits of a currency (2 for EUR, 0 for JPY, 3 for KWD). */
+export function currencyDigits(currency: CurrencyCode): number {
+  const formatter = new Intl.NumberFormat('en', {style: 'currency', currency});
+  const fraction = formatter.formatToParts(0).find(part => part.type === 'fraction');
+  return fraction?.value.length ?? 0;
+}
+
 export function formatMoney(amount: Money, locale: string): string {
   const formatter = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: amount.currency,
   });
-  const fraction = formatter.formatToParts(0).find(part => part.type === 'fraction');
-  const digits = fraction?.value.length ?? 0;
-  return formatter.format(amount.minorUnits / 10 ** digits);
+  return formatter.format(amount.minorUnits / 10 ** currencyDigits(amount.currency));
 }

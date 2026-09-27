@@ -32,6 +32,13 @@ module.exports = {
       },
     },
     {
+      name: 'core-depends-on-nothing',
+      severity: 'error',
+      comment: 'The domain core is independent: adapters depend on it, never the other way round.',
+      from: {path: '^packages/core/'},
+      to: {path: '^packages/', pathNot: '^packages/core/'},
+    },
+    {
       name: 'no-test-code-in-production',
       severity: 'error',
       from: {path: '^packages/[^/]+/src/'},

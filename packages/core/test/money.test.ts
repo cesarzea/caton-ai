@@ -1,6 +1,13 @@
 import {describe, expect, it} from 'vitest';
 
-import {addMoney, currencyCode, formatMoney, money} from '../src/index.ts';
+import {
+  addMoney,
+  currencyCode,
+  currencyDigits,
+  formatMoney,
+  money,
+  negateMoney,
+} from '../src/index.ts';
 
 describe('money', () => {
   it('keeps amounts as integer minor units', () => {
@@ -32,5 +39,18 @@ describe('formatMoney', () => {
   it('uses the currency minor unit digits', () => {
     expect(formatMoney(money(10_788, 'USD'), 'en-US')).toBe('$107.88');
     expect(formatMoney(money(1_500, 'JPY'), 'en-US')).toBe('¥1,500');
+  });
+});
+
+describe('negateMoney and currencyDigits', () => {
+  it('negates amounts without producing negative zero', () => {
+    expect(negateMoney(money(-7_417, 'EUR'))).toEqual(money(7_417, 'EUR'));
+    expect(Object.is(negateMoney(money(0, 'EUR')).minorUnits, 0)).toBe(true);
+  });
+
+  it('knows the minor-unit digits of each currency', () => {
+    expect(currencyDigits(currencyCode('EUR'))).toBe(2);
+    expect(currencyDigits(currencyCode('JPY'))).toBe(0);
+    expect(currencyDigits(currencyCode('KWD'))).toBe(3);
   });
 });
