@@ -21,7 +21,7 @@ const connectionSettingsSchema = z.looseObject({
     host: z.string().min(1),
     port: z.number().int().min(1).max(65_535).default(993),
     user: z.string().min(1),
-    /** Secret reference to an app password, such as `keychain:caton-ai/user@example.com`. */
+    /** Secret reference to an app password, such as `age:work-imap`. */
     password: z.string().min(1),
     folder: z.string().min(1).optional(),
   }),

@@ -104,6 +104,16 @@ Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
 Each connection names the connector plugin that serves it (`type`); secrets are referenced, never
 written in the file. See [ADR 0014](docs/adr/0014-connector-plugin-contract.md).
 
+Secrets go in an encrypted store ([ADR 0017](docs/adr/0017-secret-store.md)) and are referenced as
+`age:<name>`. Its key can be protected by a passphrase, a key file, a container secret or the OS
+credential store:
+
+```sh
+npm start -- secrets init passphrase    # or: init file <path> | init os-store
+npm start -- secrets set enable-banking-key < ~/.config/caton-ai/app.pem
+npm start -- secrets list               # names only, never values
+```
+
 ```sh
 npm ci --ignore-scripts
 npm start -- sync       # fetch accounts, movements and balances into the local ledger

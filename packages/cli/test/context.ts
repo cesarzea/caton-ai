@@ -5,6 +5,8 @@ import type {Ledger} from '@caton-ai/ledger';
 import type {ServerContext} from '@caton-ai/mcp';
 
 import type {CommandContext} from '../src/context.ts';
+import {fakeSecrets} from './fake-secrets.ts';
+import type {FakeSecrets} from './fake-secrets.ts';
 
 // Synthetic data only: the repository is public.
 
@@ -46,7 +48,7 @@ export const failingSource: TransactionSource = {
   listAccounts: () => Promise.reject(new Error('Enable Banking consent is not active')),
 };
 
-export interface TestContext extends CommandContext {
+export interface TestContext extends CommandContext, FakeSecrets {
   readonly lines: string[];
   readonly errors: string[];
   readonly served: ServerContext[];
@@ -60,6 +62,7 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
   const errors: string[] = [];
   const served: ServerContext[] = [];
   return {
+    ...fakeSecrets(),
     config: () => ({
       plugins: {},
       connections: Object.keys(sources).map(name => ({name, type: 'fake'})),

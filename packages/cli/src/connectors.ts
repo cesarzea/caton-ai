@@ -7,10 +7,9 @@ import type {CatonConfig, Connection} from './config.ts';
 export function sourceFactory(
   connectors: readonly Connector[],
   config: () => CatonConfig,
-  environment: ConnectorEnvironment,
-): (connection: Connection) => TransactionSource {
+): (connection: Connection, environment: ConnectorEnvironment) => TransactionSource {
   const byId = new Map(connectors.map(connector => [connector.manifest.id, connector]));
-  return connection => {
+  return (connection, environment) => {
     const connector = byId.get(connection.type);
     if (connector === undefined) {
       const installed = [...byId.keys()].join(', ');

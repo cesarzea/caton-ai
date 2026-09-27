@@ -22,16 +22,18 @@ const config = (): CatonConfig => ({
 
 describe('sourceFactory', () => {
   it('builds each connection with its connector, plugin settings and environment', () => {
-    const source = sourceFactory([fakeConnector], config, {secret: () => 'SECRET'});
+    const source = sourceFactory([fakeConnector], config);
 
-    expect(source({name: 'bank', type: 'fake', extra: 1})).toBe(workingSource);
+    expect(source({name: 'bank', type: 'fake', extra: 1}, {secret: () => 'SECRET'})).toBe(
+      workingSource,
+    );
     expect(received).toEqual([{shared: true}, {name: 'bank', type: 'fake', extra: 1}, 'SECRET']);
   });
 
   it('names the installed connectors when a connection asks for an unknown one', () => {
-    const source = sourceFactory([fakeConnector], config, {secret: () => ''});
+    const source = sourceFactory([fakeConnector], config);
 
-    expect(() => source({name: 'amex', type: 'email-alerts'})).toThrow(
+    expect(() => source({name: 'amex', type: 'email-alerts'}, {secret: () => ''})).toThrow(
       'Connection "amex" uses unknown connector "email-alerts"; installed: fake',
     );
   });

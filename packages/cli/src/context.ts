@@ -1,6 +1,7 @@
-import type {TransactionSource} from '@caton-ai/core';
+import type {ConnectorEnvironment, TransactionSource} from '@caton-ai/core';
 import type {Ledger, LedgerReader} from '@caton-ai/ledger';
 import type {ServerContext} from '@caton-ai/mcp';
+import type {KeySource, Vault} from '@caton-ai/secrets';
 
 import type {CatonConfig, Connection} from './config.ts';
 import type {Output} from './output.ts';
@@ -12,7 +13,14 @@ export interface CommandContext {
   readonly readOnlyLedger: () => LedgerReader;
   /** Serves the MCP server over stdio; it keeps running after the command returns. */
   readonly serveMcp: (context: ServerContext) => void;
-  readonly source: (connection: Connection) => TransactionSource;
+  readonly source: (connection: Connection, environment: ConnectorEnvironment) => TransactionSource;
+  /** The encrypted secret store (ADR 0017); opening it may ask for its passphrase. */
+  readonly secrets: {
+    readonly init: (key: KeySource) => Promise<void>;
+    readonly open: () => Promise<Vault>;
+  };
+  /** A secret value typed without echo, or piped on stdin. */
+  readonly readSecretValue: (question: string) => Promise<string>;
   readonly output: Output;
   readonly now: () => Date;
   readonly locale: string;
