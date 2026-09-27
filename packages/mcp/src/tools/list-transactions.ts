@@ -15,7 +15,12 @@ const INPUT = z.object({
   to: ISO_DATE.optional().describe('Last date included, YYYY-MM-DD'),
   account: z.string().optional().describe('Account handle from list_accounts'),
   direction: z.enum(['in', 'out']).optional().describe('in: money received; out: money paid'),
-  text: z.string().min(1).max(100).optional().describe('Case-insensitive text to look for'),
+  text: z
+    .string()
+    .min(1)
+    .max(100)
+    .optional()
+    .describe('Text to look for, ignoring case and accents'),
   limit: z.number().int().min(1).max(MAX_PAGE).default(50),
   offset: z.number().int().min(0).default(0),
 });

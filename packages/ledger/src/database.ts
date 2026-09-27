@@ -1,5 +1,6 @@
 import {chmodSync, existsSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
+import type {SQLOutputValue} from 'node:sqlite';
 
 import {MIGRATIONS} from './migrations.ts';
 
@@ -16,6 +17,7 @@ export function openDatabase(path: string): DatabaseSync {
     database.exec('PRAGMA journal_mode = WAL');
   }
   database.exec('PRAGMA foreign_keys = ON');
+  registerFunctions(database);
   migrate(database);
   return database;
 }
@@ -35,6 +37,7 @@ export function openDatabaseReadOnly(path: string): DatabaseSync {
   }
   const database = new DatabaseSync(path, {readOnly: true});
   database.exec('PRAGMA query_only = ON');
+  registerFunctions(database);
   const version = schemaVersion(database);
   if (version !== MIGRATIONS.length) {
     database.close();
@@ -45,6 +48,21 @@ export function openDatabaseReadOnly(path: string): DatabaseSync {
     );
   }
   return database;
+}
+
+/** Lower-cases and strips accents, so that "CAFETERÍA" and "cafeteria" compare equal. */
+function fold(value: SQLOutputValue): string | null {
+  return typeof value === 'string'
+    ? value
+        .normalize('NFD')
+        .replaceAll(/\p{Diacritic}/gu, '')
+        .toLowerCase()
+    : null;
+}
+
+/** SQL functions the queries rely on; SQLite's own `lower()` only folds ASCII letters. */
+function registerFunctions(database: DatabaseSync): void {
+  database.function('fold', {deterministic: true}, fold);
 }
 
 function schemaVersion(database: DatabaseSync): number {

@@ -12,7 +12,7 @@ export interface TransactionQuery {
   readonly accountId?: string | undefined;
   /** `in` for money received, `out` for money that left the account. */
   readonly direction?: 'in' | 'out' | undefined;
-  /** Case-insensitive text searched in the description and the counterparty. */
+  /** Text searched in the description and the counterparty, ignoring case and accents. */
   readonly text?: string | undefined;
   readonly limit: number;
   readonly offset?: number | undefined;
@@ -37,7 +37,7 @@ const MATCHING = `
       OR ($direction = 'in' AND amount_minor > 0)
       OR ($direction = 'out' AND amount_minor < 0))
     AND ($text IS NULL
-      OR instr(lower(description || ' ' || COALESCE(counterparty, '')), lower($text)) > 0)`;
+      OR instr(fold(description || ' ' || COALESCE(counterparty, '')), fold($text)) > 0)`;
 
 const PAGE_SQL = `${MATCHING.replace('%COLUMNS%', '*')}
   ORDER BY effective_date DESC, id LIMIT $limit OFFSET $offset`;
