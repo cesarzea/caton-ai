@@ -1,3 +1,7 @@
+export {emailAlertsConnector} from './connector.ts';
+export {imapMailbox} from './imap.ts';
+export type {ImapSession} from './imap.ts';
+export {parseMessage} from './mime.ts';
 export {htmlToText} from './text.ts';
 export type {MailMessage} from './message.ts';
 export {recipeSchema} from './recipe.ts';

@@ -4,8 +4,47 @@ Connector plugin that turns card alerts and receipts received by email into tran
 ([ADR 0015](../../docs/adr/0015-email-alerts-connector.md)). It is built for sources without a
 bank API, such as American Express Spain.
 
-> Status: the recipe engine reads `movement` documents. Statements, receipts and notices, the
-> IMAP mailbox and the first real recipe come next ([ADR 0015](../../docs/adr/0015-email-alerts-connector.md)).
+> Status: reads `movement` documents over IMAP. Statements, receipts and notices, and the first
+> real recipe, come next ([ADR 0015](../../docs/adr/0015-email-alerts-connector.md)).
+
+## Configuration
+
+The plugin holds the recipe library; each connection is one mailbox using some of its recipes:
+
+```json
+{
+  "plugins": {
+    "email-alerts": {"recipes": [{"id": "example-card-charge", "...": "see below"}]}
+  },
+  "connections": [
+    {
+      "name": "cards",
+      "type": "email-alerts",
+      "imap": {
+        "host": "imap.gmail.com",
+        "user": "me@example.com",
+        "password": "keychain:caton-ai/me@example.com"
+      },
+      "authServer": "mx.google.com",
+      "recipes": ["example-card-charge"]
+    }
+  ]
+}
+```
+
+- `imap.folder` is optional. By default the folder holding all mail (Gmail's "All Mail") is read,
+  else the inbox. `imap.port` defaults to 993; only TLS is used.
+- `authServer` is the receiving server whose `Authentication-Results` are trusted: `mx.google.com`
+  for Gmail and Google Workspace.
+- The password is an app password kept in the macOS Keychain. Store it without it appearing in the
+  shell history, since `security` prompts for it:
+
+  ```sh
+  security add-generic-password -s caton-ai -a me@example.com -w
+  ```
+
+The mailbox is opened read-only (IMAP `EXAMINE`) and messages are fetched with `BODY.PEEK`, so
+nothing is marked as read, moved or deleted.
 
 ## Recipes
 

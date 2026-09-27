@@ -2,7 +2,8 @@ import type {TransactionSource} from './source.ts';
 
 /**
  * What a connector plugin declares about itself. The user approves its permissions before it
- * runs (ADR 0006); `network` lists every host it may connect to.
+ * runs (ADR 0006); `network` lists every host it may connect to. An entry `connection:<setting>`
+ * means the host is chosen per connection, in that setting, and approved with the connection.
  */
 export interface ConnectorManifest {
   /** Stable identifier, used as the `type` of the connections it serves. */
