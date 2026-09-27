@@ -11,6 +11,18 @@ describe('caton sync', () => {
     expect(context.lines).toEqual(['✓ millennium: 1 account(s), 1 movement(s)']);
     expect(context.errors).toEqual(['✗ revolut: Enable Banking consent is not active']);
   });
+
+  it('leaves model instances out: they serve connections and never sync', async () => {
+    const base = testContext({millennium: workingSource});
+    const model = {id: 'claude', title: 'Claude', plugin: 'model-fake', settings: {}};
+    const context = {...base, config: () => ({instances: [...base.config().instances, model]})};
+
+    expect(await run(['sync'], context)).toBe(0);
+    expect(await run(['status'], context)).toBe(0);
+    expect(await run(['spend'], context)).toBe(0);
+    expect(base.lines[0]).toBe('✓ millennium: 1 account(s), 1 movement(s)');
+    expect(base.lines.join('\n')).not.toContain('claude');
+  });
 });
 
 describe('caton accounts and spend', () => {

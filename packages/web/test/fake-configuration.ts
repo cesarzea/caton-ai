@@ -6,6 +6,7 @@ import type {FakeState, Record} from './fake-state.ts';
 const PLUGINS: PluginInfo[] = [
   {
     id: 'email-alerts',
+    kind: 'connector',
     title: 'Email alerts',
     description: 'Card alerts received by email.',
     network: ['variable:imap-host'],
@@ -36,6 +37,7 @@ const PLUGINS: PluginInfo[] = [
   },
   {
     id: 'enable-banking',
+    kind: 'connector',
     title: 'Enable Banking',
     description: 'European banks.',
     network: [],

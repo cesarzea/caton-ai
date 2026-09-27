@@ -78,6 +78,7 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
         accessLink: () => `http://127.0.0.1:${String(port)}/#token=one-time`,
       }),
     source: instance => sources[instance.id] ?? workingSource,
+    modelPlugins: new Set(['model-fake']),
     output: {line: text => lines.push(text), error: text => errors.push(text)},
     now: () => new Date('2026-09-27T10:00:00Z'),
     locale: 'en-US',

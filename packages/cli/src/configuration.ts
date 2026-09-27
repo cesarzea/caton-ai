@@ -1,14 +1,15 @@
 import type {PluginInfo} from '@caton-ai/api';
-import type {Connector} from '@caton-ai/core';
+import type {ConnectorManifest} from '@caton-ai/core';
 import type {Configuration} from '@caton-ai/server';
 
 import type {CatonConfig} from './config.ts';
 import type {ConfigFile} from './config-file.ts';
+import type {Plugins} from './connectors.ts';
 
-/** What the web interface shows of each installed plugin: its contract, help included. */
-export function pluginInfos(connectors: readonly Connector[]): PluginInfo[] {
-  return connectors.map(({manifest}) => ({
+function infoOf(manifest: ConnectorManifest, kind: PluginInfo['kind']): PluginInfo {
+  return {
     id: manifest.id,
+    kind,
     title: manifest.title,
     description: manifest.description,
     network: [...manifest.network],
@@ -16,7 +17,15 @@ export function pluginInfos(connectors: readonly Connector[]): PluginInfo[] {
       ...variable,
       ...(choices === undefined ? {} : {choices: [...choices]}),
     })),
-  }));
+  };
+}
+
+/** What the web interface shows of each installed plugin: its contract, help included. */
+export function pluginInfos({connectors, models}: Plugins): PluginInfo[] {
+  return [
+    ...connectors.map(({manifest}) => infoOf(manifest, 'connector')),
+    ...models.map(({manifest}) => infoOf(manifest, 'model')),
+  ];
 }
 
 /**

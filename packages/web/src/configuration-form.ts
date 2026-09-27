@@ -63,6 +63,7 @@ function converterOf(
     case 'choice':
     case 'secret':
     case 'secret-file':
+    case 'model':
       return asText;
   }
 }

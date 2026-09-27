@@ -5,6 +5,7 @@ import type {Configuration} from '../src/index.ts';
 export const PLUGINS: PluginInfo[] = [
   {
     id: 'email-alerts',
+    kind: 'connector',
     title: 'Email alerts',
     description: 'Alerts by email.',
     network: ['variable:imap-host'],
