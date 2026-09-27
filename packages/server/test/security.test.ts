@@ -115,6 +115,8 @@ describe('start-up failures', () => {
       credentials: {read: () => '', write: () => undefined},
       connections: () => [],
       secretNeeds: () => new Map(),
+      plugins: [],
+      configuration: {instances: () => [], save: () => undefined},
       assets: null,
       log: () => undefined,
     });

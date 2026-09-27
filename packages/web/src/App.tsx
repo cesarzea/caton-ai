@@ -6,6 +6,7 @@ import {ApiError} from './api.ts';
 import type {Api} from './api.ts';
 import {Connections} from './components/Connections.tsx';
 import {CreateStore} from './components/CreateStore.tsx';
+import {Instances} from './components/Instances.tsx';
 import {Layout, Notice} from './components/Layout.tsx';
 import {Secrets} from './components/Secrets.tsx';
 import {Unlock} from './components/Unlock.tsx';
@@ -45,25 +46,45 @@ function useStatus(api: Api, address: Address): [View, () => Promise<void>] {
   return [view, load];
 }
 
-function Ready({
-  api,
-  status,
-  reload,
-}: Readonly<{api: Api; status: Status; reload: () => void}>): ReactNode {
-  const {store} = status;
+type ReadyProps = Readonly<{api: Api; status: Status; reload: () => void}>;
+
+/** What the state of the secret store allows: creating it, unlocking it, or configuring. */
+function StorePanels({api, status, reload}: ReadyProps): ReactNode {
+  const {store, connections} = status;
+  switch (store.state) {
+    case 'missing':
+      return (
+        <>
+          <CreateStore api={api} onCreated={reload} />
+          <Connections connections={connections} />
+        </>
+      );
+    case 'locked':
+      return (
+        <>
+          <Unlock api={api} store={store} onUnlocked={reload} />
+          <Connections connections={connections} />
+        </>
+      );
+    case 'unlocked':
+      return (
+        <>
+          <Instances api={api} connections={connections} onChanged={reload} />
+          <Secrets api={api} />
+        </>
+      );
+  }
+}
+
+function Ready({api, status, reload}: ReadyProps): ReactNode {
   // Only a passphrase store can be opened again from here; the others open when caton serve starts.
-  const lockable = store.state === 'unlocked' && store.keySource === 'passphrase';
-  const onLock = lockable
-    ? () => {
-        void api.lock().then(reload);
-      }
-    : undefined;
+  const lockable = status.store.state === 'unlocked' && status.store.keySource === 'passphrase';
+  const lock = (): void => {
+    void api.lock().then(reload);
+  };
   return (
-    <Layout {...(onLock === undefined ? {} : {onLock})}>
-      {store.state === 'missing' ? <CreateStore api={api} onCreated={reload} /> : null}
-      {store.state === 'locked' ? <Unlock api={api} store={store} onUnlocked={reload} /> : null}
-      {store.state === 'unlocked' ? <Secrets api={api} /> : null}
-      <Connections connections={status.connections} />
+    <Layout {...(lockable ? {onLock: lock} : {})}>
+      <StorePanels api={api} status={status} reload={reload} />
     </Layout>
   );
 }

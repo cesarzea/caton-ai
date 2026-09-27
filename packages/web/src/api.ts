@@ -1,5 +1,19 @@
-import {errorSchema, secretListSchema, statusSchema} from '@caton-ai/api';
-import type {InitStoreRequest, SecretEntry, Status} from '@caton-ai/api';
+import {
+  createdInstanceSchema,
+  errorSchema,
+  instanceListSchema,
+  pluginListSchema,
+  secretListSchema,
+  statusSchema,
+} from '@caton-ai/api';
+import type {
+  InitStoreRequest,
+  InstanceInfo,
+  InstanceRequest,
+  PluginInfo,
+  SecretEntry,
+  Status,
+} from '@caton-ai/api';
 
 /** A refused request, with the message the server wrote for the user. */
 export class ApiError extends Error {
@@ -52,4 +66,23 @@ export const httpApi = {
   removeSecret: (name: string): Promise<void> => send('DELETE', secretPath(name)).then(done),
 };
 
-export type Api = typeof httpApi;
+const json = async (method: string, path: string, body?: unknown): Promise<unknown> =>
+  (await send(method, path, body)).json();
+
+/** Plugins and their instances, as the configuration page edits them. */
+const configurationApi = {
+  plugins: async (): Promise<PluginInfo[]> =>
+    pluginListSchema.parse(await json('GET', '/api/plugins')).plugins,
+  instances: async (): Promise<InstanceInfo[]> =>
+    instanceListSchema.parse(await json('GET', '/api/instances')).instances,
+  createInstance: async (request: InstanceRequest): Promise<string> =>
+    createdInstanceSchema.parse(await json('POST', '/api/instances', request)).id,
+  updateInstance: (id: string, request: InstanceRequest): Promise<void> =>
+    send('PUT', `/api/instances/${encodeURIComponent(id)}`, request).then(done),
+  removeInstance: (id: string): Promise<void> =>
+    send('DELETE', `/api/instances/${encodeURIComponent(id)}`).then(done),
+};
+
+export type Api = typeof httpApi & typeof configurationApi;
+
+export const api: Api = {...httpApi, ...configurationApi};

@@ -8,7 +8,7 @@ export const VARIABLES: readonly VariableSpec[] = [
     required: true,
     help: [
       'The ID of your application in [Enable Banking](https://enablebanking.com), shown in its control panel.',
-      'Use an application in **restricted mode**: it can only read the accounts you link to it yourself, which is free for personal use.',
+      'Use an application in **restricted mode**: it can only read the accounts you link to it yourself.',
     ].join('\n\n'),
   },
   {
@@ -17,7 +17,7 @@ export const VARIABLES: readonly VariableSpec[] = [
     kind: 'secret-file',
     required: true,
     help: [
-      'The RSA private key of that application: the `.pem` file saved when the application was registered. Enable Banking keeps no copy of it; if it is lost, register a new key for the application.',
+      'The RSA private key of that application: the `.pem` file saved when the application was registered. Keep it safe: whoever has it and a session ID can read those accounts.',
       'Load the file whole. When several banks share one application, save the key once as a **shared secret** and write `${its-name}` in each of them.',
     ].join('\n\n'),
   },
