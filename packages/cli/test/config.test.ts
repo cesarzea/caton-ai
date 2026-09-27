@@ -6,7 +6,6 @@ import {afterEach, describe, expect, it} from 'vitest';
 
 import {ConfigError, loadConfig} from '../src/config.ts';
 import {configDirectory, dataDirectory, expandHome} from '../src/paths.ts';
-import {secretReader} from '../src/secrets.ts';
 
 const directories: string[] = [];
 
@@ -53,25 +52,6 @@ describe('loadConfig', () => {
     for (const content of cases) {
       const directory = directoryWith({'config.json': [content, 0o600]});
       expect(() => loadConfig(directory)).toThrow(/is invalid/u);
-    }
-  });
-});
-
-const readSecret = secretReader((service, account) => `${service}|${account}`);
-
-describe('secret references', () => {
-  it('read private files and refuse shared files and unknown schemes', () => {
-    const directory = directoryWith({'key.pem': ['KEY', 0o600], 'shared.pem': ['KEY', 0o644]});
-
-    expect(readSecret(`file:${join(directory, 'key.pem')}`)).toBe('KEY');
-    expect(() => readSecret(`file:${join(directory, 'shared.pem')}`)).toThrow(ConfigError);
-    expect(() => readSecret('vault:key')).toThrow(/Unsupported secret reference/u);
-  });
-
-  it('read the credential store by service and account', () => {
-    expect(readSecret('keychain:caton-ai/user@example.com')).toBe('caton-ai|user@example.com');
-    for (const malformed of ['keychain:caton-ai', 'keychain:/user', 'keychain:caton-ai/']) {
-      expect(() => readSecret(malformed)).toThrow(/keychain:<service>\/<account>/u);
     }
   });
 });

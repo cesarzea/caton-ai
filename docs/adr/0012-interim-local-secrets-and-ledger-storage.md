@@ -3,6 +3,9 @@
 - Status: Proposed
 - Date: 2026-09-27
 
+> The secrets part of this record is superseded by [ADR 0017](0017-secret-store.md). Encryption of
+> the ledger at rest remains open here.
+
 ## Context and problem statement
 
 The first usable version stores every transaction locally and needs credentials to reach the

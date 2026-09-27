@@ -23,7 +23,7 @@ The plugin holds the recipe library; each connection is one mailbox using some o
       "imap": {
         "host": "imap.gmail.com",
         "user": "me@example.com",
-        "password": "keychain:caton-ai/me@example.com"
+        "password": "age:me-imap"
       },
       "authServer": "mx.google.com",
       "recipes": ["example-card-charge"]
@@ -36,11 +36,12 @@ The plugin holds the recipe library; each connection is one mailbox using some o
   else the inbox. `imap.port` defaults to 993; only TLS is used.
 - `authServer` is the receiving server whose `Authentication-Results` are trusted: `mx.google.com`
   for Gmail and Google Workspace.
-- The password is an app password kept in the macOS Keychain. Store it without it appearing in the
-  shell history, since `security` prompts for it:
+- The password is an app password kept in the encrypted secret store
+  ([ADR 0017](../../docs/adr/0017-secret-store.md)). It is typed without echo, so it never enters
+  the shell history:
 
   ```sh
-  security add-generic-password -s caton-ai -a me@example.com -w
+  caton secrets set me-imap
   ```
 
 The mailbox is opened read-only (IMAP `EXAMINE`) and messages are fetched with `BODY.PEEK`, so

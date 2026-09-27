@@ -10,7 +10,7 @@ const connection = {
   imap: {
     host: 'imap.example-mail.com',
     user: 'me@example.com',
-    password: 'keychain:caton-ai/me@example.com',
+    password: 'age:me-imap',
   },
   authServer: 'mx.example-mail.com',
   recipes: ['example-card-charge'],
@@ -33,7 +33,7 @@ describe('emailAlertsConnector', () => {
       },
     });
 
-    expect(references).toEqual(['keychain:caton-ai/me@example.com']);
+    expect(references).toEqual(['age:me-imap']);
     expect(await source.listAccounts()).toMatchObject([
       {institution: 'Example Card', source: 'email-alerts'},
     ]);

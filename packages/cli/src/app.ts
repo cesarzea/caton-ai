@@ -1,5 +1,6 @@
 import {accountsCommand} from './commands/accounts.ts';
 import {mcpCommand} from './commands/mcp.ts';
+import {secretsCommand} from './commands/secrets.ts';
 import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
@@ -14,28 +15,28 @@ const USAGE = [
   '                   includes transfers between your own accounts',
   '  status           Latest sync of every connection',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
+  '  secrets          Manage the encrypted secret store (caton secrets help)',
 ];
+
+type Command = (context: CommandContext, args: readonly string[]) => number | Promise<number>;
+
+const COMMANDS = new Map<string, Command>([
+  ['sync', context => syncCommand(context)],
+  ['accounts', context => accountsCommand(context)],
+  ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
+  ['status', context => statusCommand(context)],
+  ['mcp', context => mcpCommand(context)],
+  ['secrets', (context, args) => secretsCommand(context, args)],
+]);
 
 /** Runs one CLI command and returns the process exit code. */
 export async function run(args: readonly string[], context: CommandContext): Promise<number> {
-  const [command, argument] = args;
-  switch (command) {
-    case 'sync':
-      return syncCommand(context);
-    case 'accounts':
-      return accountsCommand(context);
-    case 'spend':
-      return spendCommand(context, monthsArgument(argument));
-    case 'status':
-      return statusCommand(context);
-    case 'mcp':
-      return mcpCommand(context);
-    case undefined:
-    case 'help':
-      return usage(context, 0);
-    default:
-      return usage(context, 2);
+  const [command = 'help', ...rest] = args;
+  const handler = COMMANDS.get(command);
+  if (handler !== undefined) {
+    return handler(context, rest);
   }
+  return usage(context, command === 'help' ? 0 : 2);
 }
 
 function usage(context: CommandContext, exitCode: number): number {
