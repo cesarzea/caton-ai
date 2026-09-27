@@ -1,40 +1,48 @@
 import type {Connector} from '@caton-ai/core';
 import {describe, expect, it} from 'vitest';
 
-import {sourceFactory} from '../src/connectors.ts';
-import type {CatonConfig} from '../src/config.ts';
+import {catalogOf, sourceFactory} from '../src/connectors.ts';
 import {workingSource} from './context.ts';
 
 const received: unknown[] = [];
 
 const fakeConnector: Connector = {
-  manifest: {id: 'fake', version: '0.0.0', description: 'Test connector', network: []},
-  createSource: (pluginSettings, connectionSettings, environment) => {
-    received.push(pluginSettings, connectionSettings, environment.secret('file:x'));
+  manifest: {
+    id: 'fake',
+    version: '0.0.0',
+    title: 'Fake',
+    description: 'Test connector',
+    network: [],
+    variables: [
+      {key: 'user', label: 'User', kind: 'text', required: true, help: 'A user.'},
+      {key: 'password', label: 'Password', kind: 'secret', required: true, help: 'A password.'},
+    ],
+  },
+  createSource: (variables, environment) => {
+    received.push(variables, environment.pluginDirectory);
     return workingSource;
   },
 };
 
-const config = (): CatonConfig => ({
-  plugins: {fake: {shared: true}},
-  connections: [{name: 'bank', type: 'fake'}],
-});
+const instance = {id: 'bank', title: 'My bank', plugin: 'fake', settings: {user: 'me'}};
 
 describe('sourceFactory', () => {
-  it('builds each connection with its connector, plugin settings and environment', () => {
-    const source = sourceFactory([fakeConnector], config);
+  it('builds each instance with its plugin, secrets read from the store', () => {
+    const source = sourceFactory([fakeConnector], plugin => `/config/plugins/${plugin}`);
+    const lookup = (key: string): string | undefined =>
+      key === 'fake:bank:password' ? 'pw' : undefined;
 
-    expect(source({name: 'bank', type: 'fake', extra: 1}, {secret: () => 'SECRET'})).toBe(
-      workingSource,
-    );
-    expect(received).toEqual([{shared: true}, {name: 'bank', type: 'fake', extra: 1}, 'SECRET']);
+    expect(source(instance, lookup)).toBe(workingSource);
+    expect(received).toEqual([{user: 'me', password: 'pw'}, '/config/plugins/fake']);
+    expect(catalogOf([fakeConnector]).get('fake')).toBe(fakeConnector.manifest.variables);
   });
 
-  it('names the installed connectors when a connection asks for an unknown one', () => {
-    const source = sourceFactory([fakeConnector], config);
+  it('names what is missing, and the installed plugins when one is unknown', () => {
+    const source = sourceFactory([fakeConnector], () => '');
 
-    expect(() => source({name: 'amex', type: 'email-alerts'}, {secret: () => ''})).toThrow(
-      'Connection "amex" uses unknown connector "email-alerts"; installed: fake',
+    expect(() => source(instance, () => undefined)).toThrow('My bank: Password is missing');
+    expect(() => source({...instance, plugin: 'email-alerts'}, () => undefined)).toThrow(
+      'My bank uses the plugin "email-alerts", which is not installed; installed: fake',
     );
   });
 });

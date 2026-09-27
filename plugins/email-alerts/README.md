@@ -9,40 +9,33 @@ bank API, such as American Express Spain.
 
 ## Configuration
 
-The plugin holds the recipe library; each connection is one mailbox using some of its recipes:
+Each mailbox is an instance of the plugin, with the variables its contract declares; the web
+interface explains each of them. For example:
 
 ```json
 {
-  "plugins": {
-    "email-alerts": {"recipes": [{"id": "example-card-charge", "...": "see below"}]}
-  },
-  "connections": [
+  "instances": [
     {
-      "name": "cards",
-      "type": "email-alerts",
-      "imap": {
-        "host": "imap.gmail.com",
-        "user": "me@example.com",
-        "password": "age:me-imap"
-      },
-      "authServer": "mx.google.com",
-      "recipes": ["example-card-charge"]
+      "id": "amex",
+      "title": "Amex",
+      "plugin": "email-alerts",
+      "settings": {
+        "imap-host": "imap.gmail.com",
+        "imap-user": "me@example.com",
+        "auth-server": "mx.google.com",
+        "recipes": ["example-card-charge"]
+      }
     }
   ]
 }
 ```
 
-- `imap.folder` is optional. By default the folder holding all mail (Gmail's "All Mail") is read,
-  else the inbox. `imap.port` defaults to 993; only TLS is used.
-- `authServer` is the receiving server whose `Authentication-Results` are trusted: `mx.google.com`
-  for Gmail and Google Workspace.
-- The password is an app password kept in the encrypted secret store
-  ([ADR 0017](../../docs/adr/0017-secret-store.md)). It is typed without echo, so it never enters
-  the shell history:
-
-  ```sh
-  caton secrets set me-imap
-  ```
+- The app password is a secret, stored as `email-alerts:amex:imap-password`. When several
+  mailboxes share an account, store the password once under a name of your choice and enter
+  `${that-name}` as the password of each.
+- `imap-folder` is optional. By default the folder holding all mail (Gmail's "All Mail") is read,
+  else the inbox. `imap-port` defaults to 993; only TLS is used.
+- Recipes are JSON files in `plugins/email-alerts/recipes/` of the configuration directory.
 
 The mailbox is opened read-only (IMAP `EXAMINE`) and messages are fetched with `BODY.PEEK`, so
 nothing is marked as read, moved or deleted.

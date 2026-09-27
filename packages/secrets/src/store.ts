@@ -1,13 +1,13 @@
 import {join} from 'node:path';
 
-import {SECRET_NAME} from '@caton-ai/api';
+import {SECRET_KEY} from '@caton-ai/api';
 import {Decrypter, Encrypter, identityToRecipient} from 'age-encryption';
 import * as z from 'zod';
 
 import {SecretsError} from './errors.ts';
 import {readPrivate, writePrivate} from './files.ts';
 
-const entriesSchema = z.record(z.string().regex(SECRET_NAME), z.string());
+const entriesSchema = z.record(z.string().regex(SECRET_KEY), z.string());
 
 export const descriptorPath = (directory: string): string => join(directory, 'secrets.json');
 export const storePath = (directory: string): string => join(directory, 'secrets.age');

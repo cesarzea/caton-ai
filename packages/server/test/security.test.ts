@@ -114,7 +114,7 @@ describe('start-up failures', () => {
       secretsDirectory,
       credentials: {read: () => '', write: () => undefined},
       connections: () => [],
-      secretReferences: () => new Map(),
+      secretNeeds: () => new Map(),
       assets: null,
       log: () => undefined,
     });

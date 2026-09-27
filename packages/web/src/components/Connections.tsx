@@ -13,8 +13,8 @@ const when = (iso: string | null): string =>
 function Row({connection}: Readonly<{connection: ConnectionStatus}>): ReactNode {
   return (
     <tr>
-      <th scope="row">{connection.name}</th>
-      <td>{connection.type}</td>
+      <th scope="row">{connection.title}</th>
+      <td>{connection.plugin}</td>
       <td>
         <span className={`badge ${connection.lastOutcome}`}>
           {text.connections.outcome[connection.lastOutcome]}
@@ -47,7 +47,7 @@ export function Connections({
           </thead>
           <tbody>
             {connections.map(connection => (
-              <Row key={connection.name} connection={connection} />
+              <Row key={connection.id} connection={connection} />
             ))}
           </tbody>
         </table>

@@ -21,7 +21,7 @@ beforeAll(async () => {
   writeFileSync(
     configPath,
     JSON.stringify({
-      connections: [{name: 'millennium', type: 'enable-banking', sessionId: 'session-millennium'}],
+      instances: [{id: 'millennium', title: 'Millennium', plugin: 'enable-banking', settings: {}}],
     }),
   );
   chmodSync(configPath, 0o600);

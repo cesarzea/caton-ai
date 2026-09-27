@@ -1,5 +1,8 @@
 # 0017 — Secret store: age encryption, key kept where the user chooses
 
+> Amended by [ADR 0019](0019-plugin-variables-instances-and-shared-secrets.md): secrets are keyed
+> `plugin:instance:variable` or by a shared name, and configuration no longer refers to them.
+
 - Status: Accepted
 - Date: 2026-09-27
 - Supersedes: the secrets part of ADR 0012
@@ -34,7 +37,8 @@ permissions. No single one fits every platform and use.
 
   Changing where the key lives re-wraps the identity; the store itself is not re-encrypted.
 
-- **References, never values, in configuration:** `age:<name>` for the store, and `file:<path>`
+- **References, never values, in configuration** (superseded by ADR 0019: configuration no longer
+  refers to secrets at all): `age:<name>` for the store, and `file:<path>`
   for private files. Environment variables are not supported. Child processes inherit them,
   and they leak into crash dumps, logs and container inspection.
 - **Commands:**

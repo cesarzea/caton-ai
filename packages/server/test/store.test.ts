@@ -45,22 +45,37 @@ describe('secret store creation', () => {
   });
 });
 
+const INSTANCE_KEY = 'email-alerts:amex:imap-password';
+const path = (key: string): string => `/api/secrets/${encodeURIComponent(key)}`;
+
 describe('secrets', () => {
-  it('are written and deleted, and their values are never sent back', async () => {
+  it('are listed when needed, stand for shared ones through macros, and never come back', async () => {
     const replies: Reply[] = [];
     const api = await session(await started(), replies);
     await api('POST', '/api/store/init', keyFile());
+    const list = async (): Promise<unknown> =>
+      secretListSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body)).secrets;
 
-    expect((await api('PUT', '/api/secrets/imap', {value: 'app-password-value'})).status).toBe(204);
-    const list = secretListSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body));
-    expect(list.secrets).toEqual([
-      {name: 'work-imap', stored: false, usedBy: ['amex']},
-      {name: 'imap', stored: true, usedBy: []},
+    expect(await list()).toEqual([
+      {name: INSTANCE_KEY, stored: false, macro: null, usedBy: ['Amex']},
     ]);
-    expect((await api('DELETE', '/api/secrets/imap')).status).toBe(204);
-    expect((await api('DELETE', '/api/secrets/imap')).status).toBe(404);
-    expect((await api('GET', '/api/secrets/imap')).status).toBe(405);
+    expect((await api('PUT', path(INSTANCE_KEY), {value: '${work-imap}'})).status).toBe(204);
+    expect(await list()).toEqual([
+      {name: 'work-imap', stored: false, macro: null, usedBy: ['Amex']},
+      {name: INSTANCE_KEY, stored: true, macro: 'work-imap', usedBy: ['Amex']},
+    ]);
+    expect((await api('PUT', path('work-imap'), {value: 'app-password-value'})).status).toBe(204);
+    expect((await api('DELETE', path('work-imap'))).status).toBe(204);
+    expect((await api('DELETE', path('work-imap'))).status).toBe(404);
     expect(JSON.stringify(replies)).not.toContain('app-password-value');
+  });
+
+  it('are addressed only by valid keys', async () => {
+    const api = await session(await started());
+
+    expect((await api('GET', path(INSTANCE_KEY))).status).toBe(405);
+    expect((await api('PUT', '/api/secrets/Not%20Valid', {value: 'x'})).status).toBe(404);
+    expect((await api('PUT', '/api/secrets/%E0', {value: 'x'})).status).toBe(400);
   });
 });
 

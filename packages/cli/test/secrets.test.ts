@@ -1,28 +1,7 @@
-import {chmodSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
-
 import type {Vault} from '@caton-ai/secrets';
-import {afterEach, describe, expect, it} from 'vitest';
+import {describe, expect, it} from 'vitest';
 
-import {ConfigError} from '../src/config.ts';
-import {passphraseAsker, secretReferences, secretResolver} from '../src/secrets.ts';
-
-const directories: string[] = [];
-afterEach(() => {
-  directories.splice(0).forEach(directory => {
-    rmSync(directory, {recursive: true, force: true});
-  });
-});
-
-function file(content: string, mode: number): string {
-  const directory = mkdtempSync(join(tmpdir(), 'caton-secret-'));
-  directories.push(directory);
-  const path = join(directory, 'secret');
-  writeFileSync(path, content);
-  chmodSync(path, mode);
-  return path;
-}
+import {passphraseAsker, storeLookup} from '../src/secrets.ts';
 
 const vault = (entries: Record<string, string>): Vault => ({
   names: () => Object.keys(entries),
@@ -32,36 +11,34 @@ const vault = (entries: Record<string, string>): Vault => ({
   reload: () => Promise.resolve(),
 });
 
-describe('secretResolver', () => {
-  it('reads private files, and never opens the store when nothing refers to it', async () => {
+const needing = {instances: [{id: 'amex', title: 'Amex', plugin: 'mail', settings: {}}]};
+const catalog = new Map([
+  [
+    'mail',
+    [{key: 'password', label: 'Password', kind: 'secret' as const, required: true, help: ''}],
+  ],
+]);
+
+describe('storeLookup', () => {
+  it('never opens the store when no instance needs it', async () => {
     const opened: string[] = [];
-    const secret = await secretResolver({plugins: {x: {key: 'file:/k'}}}, () => {
+    const lookup = await storeLookup({instances: []}, catalog, () => {
       opened.push('open');
       return Promise.resolve(vault({}));
     });
 
-    expect(secret(`file:${file('KEY', 0o600)}`)).toBe('KEY');
-    expect(() => secret(`file:${file('KEY', 0o644)}`)).toThrow(ConfigError);
-    expect(() => secret('vault:x')).toThrow(/use file:<path> or age:<name>/u);
+    expect(lookup('anything')).toBeUndefined();
     expect(opened).toEqual([]);
   });
 
-  it('reads the store once, saying how to add a missing secret', async () => {
-    const secret = await secretResolver({connections: [{password: 'age:imap'}]}, () =>
-      Promise.resolve(vault({imap: 'app-password'})),
+  it('reads the store once opened, and fails only the lookups when it cannot be opened', async () => {
+    const open = await storeLookup(needing, catalog, () =>
+      Promise.resolve(vault({'mail:amex:password': 'pw'})),
     );
+    const locked = await storeLookup(needing, catalog, () => Promise.reject(new Error('locked')));
 
-    expect(secret('age:imap')).toBe('app-password');
-    expect(() => secret('age:other')).toThrow(
-      'No secret "other" in the store; add it with: caton secrets set other',
-    );
-  });
-
-  it('fails only the secrets of the store when it cannot be opened', async () => {
-    const secret = await secretResolver(['age:imap'], () => Promise.reject(new Error('locked')));
-
-    expect(() => secret('age:imap')).toThrow('locked');
-    expect(secret(`file:${file('KEY', 0o600)}`)).toBe('KEY');
+    expect(open('mail:amex:password')).toBe('pw');
+    expect(() => locked('mail:amex:password')).toThrow('locked');
   });
 });
 
@@ -79,28 +56,5 @@ describe('passphraseAsker', () => {
     await expect(passphraseAsker(answering('a long passphrase', 'typo'))(true)).rejects.toThrow(
       'The passphrases do not match',
     );
-  });
-});
-
-describe('secretReferences', () => {
-  it('names who needs each store secret: connections, and plugins for all their connections', () => {
-    const references = secretReferences({
-      plugins: {'enable-banking': {appId: 'app', privateKey: 'age:enable-banking-key'}},
-      connections: [
-        {name: 'amex', type: 'email-alerts', imap: {credential: 'age:work-imap', user: 'me'}},
-        {
-          name: 'receipts',
-          type: 'email-alerts',
-          imap: {credential: 'age:work-imap'},
-          other: 'age:work-imap',
-        },
-        {name: 'millennium', type: 'enable-banking', sessionId: 'file:/not/the/store'},
-      ],
-    });
-
-    expect(Object.fromEntries(references)).toEqual({
-      'enable-banking-key': ['enable-banking (all its connections)'],
-      'work-imap': ['amex', 'receipts'],
-    });
   });
 });

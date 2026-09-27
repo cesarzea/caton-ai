@@ -5,16 +5,18 @@ import type {Api} from '../src/api.ts';
 
 const CONNECTIONS: ConnectionStatus[] = [
   {
-    name: 'millennium',
-    type: 'enable-banking',
+    id: 'millennium',
+    title: 'Millennium',
+    plugin: 'enable-banking',
     lastOutcome: 'ok',
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
     error: null,
   },
   {
-    name: 'amex',
-    type: 'email-alerts',
+    id: 'amex',
+    title: 'Amex',
+    plugin: 'email-alerts',
     lastOutcome: 'failed',
     lastRunAt: '2026-09-27T11:00:00.000Z',
     lastSuccessfulSyncAt: null,
@@ -43,6 +45,7 @@ function secretsOf(
         [...new Set([...api.required.keys(), ...api.stored.keys()])].map(name => ({
           name,
           stored: api.stored.has(name),
+          macro: /^\$\{([a-z0-9-]+)\}$/u.exec(api.stored.get(name) ?? '')?.[1] ?? null,
           usedBy: api.required.get(name) ?? [],
         })),
       ),

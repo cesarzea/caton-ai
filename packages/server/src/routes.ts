@@ -1,6 +1,7 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 
 import {
+  SECRET_KEY,
   initStoreRequestSchema,
   sessionRequestSchema,
   setSecretRequestSchema,
@@ -12,14 +13,14 @@ import {HttpError, jsonBody, sendJson} from './http.ts';
 import {sessionCookie} from './sessions.ts';
 import type {Sessions} from './sessions.ts';
 import {secretEntries} from './secret-list.ts';
-import type {SecretReferences} from './secret-list.ts';
+import type {SecretNeeds} from './secret-list.ts';
 import type {StoreHolder} from './store-holder.ts';
 
 export interface ApiContext {
   readonly sessions: Sessions;
   readonly store: StoreHolder;
   readonly connections: () => ConnectionStatus[];
-  readonly secretReferences: () => SecretReferences;
+  readonly secretNeeds: () => SecretNeeds;
 }
 
 type Handler = (
@@ -28,7 +29,24 @@ type Handler = (
   context: ApiContext,
 ) => Promise<void>;
 
-const SECRET_PATH = /^\/api\/secrets\/([a-z0-9][a-z0-9-]*)$/u;
+const SECRET_PREFIX = '/api/secrets/';
+
+/** The store key in a secret path, decoded exactly once (`:` arrives as `%3A`) and then validated. */
+function secretKeyOf(path: string): string | null {
+  if (!path.startsWith(SECRET_PREFIX)) {
+    return null;
+  }
+  let key: string;
+  try {
+    key = decodeURIComponent(path.slice(SECRET_PREFIX.length));
+  } catch {
+    throw new HttpError(400, 'Malformed secret key');
+  }
+  if (!SECRET_KEY.test(key)) {
+    throw new HttpError(404, 'Not found');
+  }
+  return key;
+}
 
 const openSession: Handler = async (request, response, {sessions}) => {
   const id = sessions.exchange((await jsonBody(request, sessionRequestSchema)).token);
@@ -60,10 +78,12 @@ const lockStore: Handler = (_request, response, {store}) => {
   return Promise.resolve();
 };
 
-const secretList: Handler = async (_request, response, {store, secretReferences}) => {
+const secretList: Handler = async (_request, response, {store, secretNeeds}) => {
   const vault = store.vault();
   await vault.reload();
-  sendJson(response, 200, {secrets: secretEntries(vault.names(), secretReferences())});
+  sendJson(response, 200, {
+    secrets: secretEntries({names: vault.names(), get: key => vault.get(key)}, secretNeeds()),
+  });
 };
 
 /** The fixed set of routes; anything else is not found. */
@@ -116,9 +136,9 @@ export async function apiRoute(
   if (!context.sessions.isValid(request.headers.cookie)) {
     throw new HttpError(401, 'Open Catón AI with the link printed by caton serve');
   }
-  const name = SECRET_PATH.exec(path)?.[1];
-  if (name !== undefined) {
-    await secretRoute(request, response, context, name);
+  const key = secretKeyOf(path);
+  if (key !== null) {
+    await secretRoute(request, response, context, key);
     return;
   }
   await routeFor(request.method, path)(request, response, context);
