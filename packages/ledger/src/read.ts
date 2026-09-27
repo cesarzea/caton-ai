@@ -43,10 +43,18 @@ export function readLatestBalances(database: DatabaseSync): Balance[] {
     .map(balanceFrom);
 }
 
-export function readLastRun(database: DatabaseSync, source: string): SyncRun | null {
+/** Latest run of a source; only successful ones when `successfulOnly` is set. */
+export function readLastRun(
+  database: DatabaseSync,
+  source: string,
+  successfulOnly: boolean,
+): SyncRun | null {
   const row = database
-    .prepare('SELECT * FROM sync_runs WHERE source = $source ORDER BY id DESC LIMIT 1')
-    .get({source});
+    .prepare(
+      `SELECT * FROM sync_runs WHERE source = $source AND ($any = 1 OR outcome = 'ok')
+       ORDER BY id DESC LIMIT 1`,
+    )
+    .get({source, any: successfulOnly ? 0 : 1});
   if (row === undefined) {
     return null;
   }

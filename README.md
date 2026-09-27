@@ -12,8 +12,9 @@ the services you pay for — keeps everything on your own machine, and lets plug
 watch it for you: budgets, goals, cash-flow forecasts, and alerts such as _"tell me when my
 Anthropic spend goes over $20"_.
 
-> **Status: pre-alpha.** This repository currently contains the engineering foundation only
-> (tooling, quality gates and CI). There is no usable product yet.
+> **Status: pre-alpha.** A first command-line version syncs European bank accounts through
+> Enable Banking into a local ledger and reports monthly spend. Plugins, agents, alerts and the web
+> UI are not built yet.
 
 ## Why the name
 
@@ -82,6 +83,31 @@ it was introduced.
 | [OWASP ASVS 5.0](https://owasp.org/www-project-application-security-verification-standard/) level 2, before offering the product to businesses | Planned |
 | Mutation testing of the accounting domain                                                                                                      | Planned |
 
+## Getting started
+
+Requires Node.js 24 LTS or newer and an [Enable Banking](https://enablebanking.com) application
+in restricted mode with your own accounts linked and authorised (one session per bank).
+
+Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
+
+```json
+{
+  "enableBanking": {"appId": "<application id>", "privateKeyPath": "~/.config/caton-ai/app.pem"},
+  "connections": [{"name": "mybank", "sessionId": "<authorised session id>"}]
+}
+```
+
+```sh
+npm ci --ignore-scripts
+npm start -- sync       # fetch accounts, movements and balances into the local ledger
+npm start -- accounts   # accounts and latest balances
+npm start -- spend 3    # money spent per month, last 3 months (cash basis)
+npm start -- status     # last sync of every connection
+```
+
+Unattended PSD2 access allows only a few requests per account per day, so sync at most a few
+times a day. Current limitations are tracked in [ADR 0012](docs/adr/0012-interim-local-secrets-and-ledger-storage.md).
+
 ## Development
 
 Requires Node.js 24 LTS or newer.
@@ -89,7 +115,6 @@ Requires Node.js 24 LTS or newer.
 ```sh
 npm ci --ignore-scripts
 npm run check   # types, lint, format, architecture rules, dead code, tests + coverage
-npm start       # runs the CLI directly from TypeScript sources (no build step)
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the quality gates and conventions.
