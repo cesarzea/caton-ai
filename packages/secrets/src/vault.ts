@@ -1,13 +1,14 @@
 import {existsSync, readFileSync} from 'node:fs';
-import {join} from 'node:path';
 
-import {Decrypter, Encrypter, generateX25519Identity, identityToRecipient} from 'age-encryption';
+import {generateX25519Identity} from 'age-encryption';
 import * as z from 'zod';
 
 import {SecretsError} from './errors.ts';
-import {ensurePrivateDirectory, readPrivate, writePrivate} from './files.ts';
+import {ensurePrivateDirectory, writePrivate} from './files.ts';
 import {loadKey, saveKey} from './keys.ts';
 import type {KeyDependencies, KeySource} from './keys.ts';
+import {withLock} from './lock.ts';
+import {SECRET_NAME, descriptorPath, lockPath, readStore, storePath, writeStore} from './store.ts';
 
 /** The decrypted secret store of one process. */
 export interface Vault {
@@ -15,9 +16,9 @@ export interface Vault {
   get(name: string): string | undefined;
   set(name: string, value: string): Promise<void>;
   remove(name: string): Promise<boolean>;
+  /** Reads the store again, picking up changes made by other processes. */
+  reload(): Promise<void>;
 }
-
-const NAME = /^[a-z0-9][a-z0-9-]*$/u;
 
 const descriptorSchema = z.object({
   version: z.literal(1),
@@ -28,32 +29,12 @@ const descriptorSchema = z.object({
   ]),
 });
 
-const entriesSchema = z.record(z.string().regex(NAME), z.string());
-
-const descriptorPath = (directory: string): string => join(directory, 'secrets.json');
-const storePath = (directory: string): string => join(directory, 'secrets.age');
-
-async function encrypted(
-  identity: string,
-  entries: Readonly<Record<string, string>>,
-): Promise<Uint8Array> {
-  const encrypter = new Encrypter();
-  encrypter.addRecipient(await identityToRecipient(identity));
-  return encrypter.encrypt(JSON.stringify(entries));
-}
-
-async function decrypted(identity: string, directory: string): Promise<Record<string, string>> {
-  const decrypter = new Decrypter();
-  decrypter.addIdentity(identity);
-  try {
-    return entriesSchema.parse(
-      JSON.parse(await decrypter.decrypt(readPrivate(storePath(directory)), 'text')),
-    );
-  } catch (error) {
-    throw error instanceof SecretsError
-      ? error
-      : new SecretsError('The secret store cannot be decrypted with its key');
+/** Where the key of the store in `directory` is kept, or `null` when there is no store. */
+export function storeKeySource(directory: string): KeySource | null {
+  if (!existsSync(descriptorPath(directory))) {
+    return null;
   }
+  return descriptorSchema.parse(JSON.parse(readFileSync(descriptorPath(directory), 'utf8'))).key;
 }
 
 /** Creates an empty store whose key lives where `key` says. Never replaces an existing store. */
@@ -68,47 +49,66 @@ export async function initVault(
   }
   const identity = await generateX25519Identity();
   await saveKey(directory, key, identity, dependencies);
-  writePrivate(storePath(directory), await encrypted(identity, {}), false);
+  await writeStore(directory, identity, new Map(), false);
   writePrivate(descriptorPath(directory), `${JSON.stringify({version: 1, key}, null, 2)}\n`, false);
 }
 
-function vaultOver(directory: string, identity: string, stored: Record<string, string>): Vault {
-  const entries = new Map(Object.entries(stored));
-  const save = async (): Promise<void> => {
-    writePrivate(
-      storePath(directory),
-      await encrypted(identity, Object.fromEntries(entries)),
-      true,
+type Changer = <T>(apply: (fresh: Map<string, string>) => T) => Promise<T>;
+
+/**
+ * Applies changes one at a time in this process, under a lock across processes, always to the
+ * store as it is on disk, and reports the saved contents.
+ */
+function changer(
+  directory: string,
+  identity: string,
+  saved: (entries: Map<string, string>) => void,
+): Changer {
+  let queue: Promise<unknown> = Promise.resolve();
+  return apply => {
+    const next = queue.then(() =>
+      withLock(lockPath(directory), async () => {
+        const fresh = await readStore(directory, identity);
+        const result = apply(fresh);
+        await writeStore(directory, identity, fresh, true);
+        saved(fresh);
+        return result;
+      }),
     );
+    queue = next.catch(() => undefined);
+    return next;
   };
+}
+
+function vaultOver(directory: string, identity: string, stored: Map<string, string>): Vault {
+  let entries = stored;
+  const change = changer(directory, identity, fresh => {
+    entries = fresh;
+  });
   return {
     names: () => [...entries.keys()].sort((left, right) => left.localeCompare(right)),
     get: name => entries.get(name),
     set: async (name, value) => {
-      if (!NAME.test(name)) {
+      if (!SECRET_NAME.test(name)) {
         throw new SecretsError(
           `Secret names use lowercase letters, digits and dashes, got "${name}"`,
         );
       }
-      entries.set(name, value);
-      await save();
+      await change(fresh => fresh.set(name, value));
     },
-    remove: async name => {
-      if (!entries.delete(name)) {
-        return false;
-      }
-      await save();
-      return true;
+    remove: name => change(fresh => fresh.delete(name)),
+    reload: async () => {
+      entries = await readStore(directory, identity);
     },
   };
 }
 
 /** Opens and decrypts the store, asking for its key as its descriptor says. */
 export async function openVault(directory: string, dependencies: KeyDependencies): Promise<Vault> {
-  if (!existsSync(descriptorPath(directory))) {
+  const key = storeKeySource(directory);
+  if (key === null) {
     throw new SecretsError('There is no secret store yet: create one with `caton secrets init`');
   }
-  const {key} = descriptorSchema.parse(JSON.parse(readFileSync(descriptorPath(directory), 'utf8')));
   const identity = await loadKey(directory, key, dependencies);
-  return vaultOver(directory, identity, await decrypted(identity, directory));
+  return vaultOver(directory, identity, await readStore(directory, identity));
 }

@@ -29,6 +29,7 @@ const vault = (entries: Record<string, string>): Vault => ({
   get: name => entries[name],
   set: () => Promise.resolve(),
   remove: () => Promise.resolve(false),
+  reload: () => Promise.resolve(),
 });
 
 describe('secretResolver', () => {
@@ -70,13 +71,10 @@ describe('passphraseAsker', () => {
     (): Promise<string> =>
       Promise.resolve(answers.shift() ?? '');
 
-  it('asks once to open, and twice with a minimum length to create', async () => {
+  it('asks once to open, and twice to create', async () => {
     expect(await passphraseAsker(answering('short'))(false)).toBe('short');
     expect(await passphraseAsker(answering('a long passphrase', 'a long passphrase'))(true)).toBe(
       'a long passphrase',
-    );
-    await expect(passphraseAsker(answering('short'))(true)).rejects.toThrow(
-      /at least 12 characters/u,
     );
     await expect(passphraseAsker(answering('a long passphrase', 'typo'))(true)).rejects.toThrow(
       'The passphrases do not match',

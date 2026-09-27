@@ -65,9 +65,7 @@ export async function secretResolver(
   };
 }
 
-const MIN_PASSPHRASE_LENGTH = 12;
-
-/** Asks for the store passphrase; a new one must be long enough and typed twice. */
+/** Asks for the store passphrase; a new one is typed twice. */
 export function passphraseAsker(
   ask: (question: string) => Promise<string>,
 ): (confirm: boolean) => Promise<string> {
@@ -75,11 +73,6 @@ export function passphraseAsker(
     const passphrase = await ask('Secret store passphrase: ');
     if (!confirm) {
       return passphrase;
-    }
-    if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
-      throw new ConfigError(
-        `Use a passphrase of at least ${String(MIN_PASSPHRASE_LENGTH)} characters`,
-      );
     }
     if ((await ask('Repeat the passphrase: ')) !== passphrase) {
       throw new ConfigError('The passphrases do not match');

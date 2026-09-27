@@ -21,6 +21,9 @@ export interface KeyDependencies {
   readonly credentials: CredentialStore;
 }
 
+/** New passphrases shorter than this are refused, whoever asks for them. */
+export const MIN_PASSPHRASE_LENGTH = 12;
+
 const OS_SERVICE = 'caton-ai';
 const OS_ACCOUNT = 'secret-store-key';
 const IDENTITY = /^AGE-SECRET-KEY-1[0-9A-Z]+$/u;
@@ -44,7 +47,13 @@ export async function saveKey(
   switch (key.source) {
     case 'passphrase': {
       const encrypter = new Encrypter();
-      encrypter.setPassphrase(await dependencies.askPassphrase(true));
+      const passphrase = await dependencies.askPassphrase(true);
+      if (passphrase.length < MIN_PASSPHRASE_LENGTH) {
+        throw new SecretsError(
+          `Use a passphrase of at least ${String(MIN_PASSPHRASE_LENGTH)} characters`,
+        );
+      }
+      encrypter.setPassphrase(passphrase);
       writePrivate(wrappedKeyPath(directory), await encrypter.encrypt(identity), false);
       return;
     }
