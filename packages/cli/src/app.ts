@@ -1,4 +1,5 @@
 import {accountsCommand} from './commands/accounts.ts';
+import {configCommand} from './commands/config.ts';
 import {mcpCommand} from './commands/mcp.ts';
 import {secretsCommand} from './commands/secrets.ts';
 import {DEFAULT_PORT, serveCommand} from './commands/serve.ts';
@@ -17,6 +18,7 @@ const USAGE = [
   '  status           Latest sync of every connection',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
   '  secrets          Manage the encrypted secret store (caton secrets help)',
+  '  config migrate   Convert the configuration file to instances, keeping a backup',
   `  serve [port]     Open the web interface on this computer (default port: ${String(DEFAULT_PORT)})`,
 ];
 
@@ -29,6 +31,7 @@ const COMMANDS = new Map<string, Command>([
   ['status', context => statusCommand(context)],
   ['mcp', context => mcpCommand(context)],
   ['secrets', (context, args) => secretsCommand(context, args)],
+  ['config', (context, args) => configCommand(context, args)],
   ['serve', (context, [port]) => serveCommand(context, portArgument(port))],
 ]);
 

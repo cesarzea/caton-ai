@@ -3,27 +3,28 @@ import {join} from 'node:path';
 
 import * as z from 'zod';
 
-const IDENTIFIER = /^[a-z0-9-]+$/u;
+const IDENTIFIER = /^[a-z0-9][a-z0-9-]*$/u;
 
-const connectionSchema = z.looseObject({
-  name: z.string().regex(IDENTIFIER),
-  /** Id of the connector plugin that serves this connection, such as `enable-banking`. */
-  type: z.string().regex(IDENTIFIER),
+const instanceSchema = z.object({
+  /** Fixed when the instance is created; history and secret keys hang off it. */
+  id: z.string().regex(IDENTIFIER),
+  title: z.string().min(1),
+  /** Id of the plugin it uses, such as `enable-banking`. */
+  plugin: z.string().regex(IDENTIFIER),
+  /** Values of its non-secret variables; secret ones live only in the store. */
+  settings: z.record(z.string(), z.unknown()).default({}),
 });
 
-const configSchema = z.object({
-  /** Settings shared by every connection of a connector, keyed by connector id. */
-  plugins: z.record(z.string(), z.unknown()).default({}),
-  connections: z
-    .array(connectionSchema)
-    .min(1)
-    .refine(connections => new Set(connections.map(({name}) => name)).size === connections.length, {
-      message: 'Connection names must be unique',
+const configSchema = z.looseObject({
+  instances: z
+    .array(instanceSchema)
+    .refine(instances => new Set(instances.map(({id}) => id)).size === instances.length, {
+      message: 'Instance ids must be unique',
     }),
 });
 
 export type CatonConfig = z.infer<typeof configSchema>;
-export type Connection = CatonConfig['connections'][number];
+export type Instance = CatonConfig['instances'][number];
 
 export class ConfigError extends Error {
   override readonly name = 'ConfigError';
@@ -42,7 +43,11 @@ export function assertPrivate(path: string): void {
 export function loadConfig(directory: string): CatonConfig {
   const path = join(directory, 'config.json');
   assertPrivate(path);
-  const parsed = configSchema.safeParse(JSON.parse(readFileSync(path, 'utf8')));
+  const raw: unknown = JSON.parse(readFileSync(path, 'utf8'));
+  if (typeof raw === 'object' && raw !== null && 'connections' in raw && !('instances' in raw)) {
+    throw new ConfigError(`${path} uses the first configuration format: run caton config migrate`);
+  }
+  const parsed = configSchema.safeParse(raw);
   if (!parsed.success) {
     throw new ConfigError(`${path} is invalid: ${z.prettifyError(parsed.error)}`);
   }

@@ -7,7 +7,7 @@ import {openApp} from './render.tsx';
 afterEach(cleanup);
 
 const rowOf = async (name: string): Promise<HTMLElement> =>
-  (await screen.findByText(`age:${name}`)).closest('li') as HTMLElement;
+  (await screen.findByText(name)).closest('li') as HTMLElement;
 
 describe('secrets the configuration needs', () => {
   it('are listed as missing, with the field to type their value', async () => {
@@ -93,5 +93,20 @@ describe('connections', () => {
     expect(screen.getByText('Synced').className).toBe('badge ok');
     expect(screen.getByText('Failing').className).toBe('badge failed');
     expect(screen.getByText('1 email(s) could not be read')).toBeDefined();
+  });
+});
+
+describe('shared secrets', () => {
+  it('show which shared secret an instance secret stands for', async () => {
+    const api = fakeApi({state: 'unlocked', keySource: 'passphrase'});
+    api.required.set('email-alerts:amex:imap-password', ['Amex']);
+    api.stored.set('email-alerts:amex:imap-password', '${work-imap}');
+    openApp(api);
+
+    expect(
+      within(await rowOf('email-alerts:amex:imap-password')).getByText(
+        'Uses the shared secret work-imap',
+      ),
+    ).toBeDefined();
   });
 });

@@ -1,6 +1,6 @@
 import {existsSync, readFileSync} from 'node:fs';
 
-import {SECRET_NAME} from '@caton-ai/api';
+import {SECRET_KEY} from '@caton-ai/api';
 import {generateX25519Identity} from 'age-encryption';
 import * as z from 'zod';
 
@@ -90,9 +90,9 @@ function vaultOver(directory: string, identity: string, stored: Map<string, stri
     names: () => [...entries.keys()].sort((left, right) => left.localeCompare(right)),
     get: name => entries.get(name),
     set: async (name, value) => {
-      if (!SECRET_NAME.test(name)) {
+      if (!SECRET_KEY.test(name)) {
         throw new SecretsError(
-          `Secret names use lowercase letters, digits and dashes, got "${name}"`,
+          `Secret keys are a name, or plugin:instance:variable, in lowercase letters, digits and dashes; got "${name}"`,
         );
       }
       await change(fresh => fresh.set(name, value));

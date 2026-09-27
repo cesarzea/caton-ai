@@ -24,22 +24,25 @@ describe('connectionStatuses', () => {
     const context = testContext({millennium: workingSource, revolut: failingSource});
     await run(['sync'], context);
     const config = {
-      plugins: {},
-      connections: [...context.config().connections, {name: 'amex', type: 'email-alerts'}],
+      instances: [
+        ...context.config().instances,
+        {id: 'amex', title: 'Amex', plugin: 'email-alerts', settings: {}},
+      ],
     };
 
     expect(connectionStatuses(config, () => context.readOnlyLedger())).toMatchObject([
       {
-        name: 'millennium',
-        type: 'fake',
+        id: 'millennium',
+        plugin: 'fake',
         lastOutcome: 'ok',
         lastRunAt: '2026-09-27T10:00:00.000Z',
         error: null,
       },
-      {name: 'revolut', lastOutcome: 'failed', error: 'Enable Banking consent is not active'},
+      {id: 'revolut', lastOutcome: 'failed', error: 'Enable Banking consent is not active'},
       {
-        name: 'amex',
-        type: 'email-alerts',
+        id: 'amex',
+        title: 'Amex',
+        plugin: 'email-alerts',
         lastOutcome: 'never',
         lastRunAt: null,
         lastSuccessfulSyncAt: null,
@@ -50,7 +53,7 @@ describe('connectionStatuses', () => {
 
 describe('connectionStatuses without a ledger', () => {
   it('reports every connection as never synced when there is no ledger', () => {
-    const config = {plugins: {}, connections: [{name: 'amex', type: 'email-alerts'}]};
+    const config = {instances: [{id: 'amex', title: 'Amex', plugin: 'email-alerts', settings: {}}]};
 
     expect(connectionStatuses(config, () => null).map(status => status.lastOutcome)).toEqual([
       'never',

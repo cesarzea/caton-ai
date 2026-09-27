@@ -33,16 +33,17 @@ export const text = {
   connections: {
     title: 'Connections',
     empty: 'No connections configured yet.',
-    columns: ['Connection', 'Type', 'Status', 'Last sync', 'Problem'],
+    columns: ['Connection', 'Plugin', 'Status', 'Last sync', 'Problem'],
     outcome: {ok: 'Synced', failed: 'Failing', never: 'Never synced'},
   },
   secrets: {
     title: 'Secrets',
     intro:
-      'Connections refer to secrets as age:<name>. Values are kept encrypted and can be replaced, never shown.',
+      'Values are kept encrypted and can be replaced, never shown. To share one secret between several connections, save it once under a name of your choice and enter ${that-name} as their value.',
     empty: 'No secrets yet.',
     missing: 'Missing',
     stored: 'Stored',
+    macro: (target: string) => `Uses the shared secret ${target}`,
     usedBy: (owners: readonly string[]) => `Used by ${owners.join(', ')}`,
     unused: 'Not used by any connection',
     valueOf: (name: string) => `Value of ${name}`,

@@ -38,8 +38,9 @@ const memoryCredentials = (): CredentialStore => {
 
 export const CONNECTIONS: ConnectionStatus[] = [
   {
-    name: 'millennium',
-    type: 'enable-banking',
+    id: 'millennium',
+    title: 'Millennium',
+    plugin: 'enable-banking',
     lastOutcome: 'ok',
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
@@ -62,7 +63,7 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     secretsDirectory,
     credentials: memoryCredentials(),
     connections: () => CONNECTIONS,
-    secretReferences: () => new Map([['work-imap', ['amex']]]),
+    secretNeeds: () => new Map([['email-alerts:amex:imap-password', ['Amex']]]),
     assets: null,
     log: message => {
       logged.push(message);

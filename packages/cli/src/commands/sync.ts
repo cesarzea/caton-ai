@@ -1,17 +1,17 @@
 import {syncConnection} from '@caton-ai/sync';
 
 import type {CommandContext} from '../context.ts';
-import {secretResolver} from '../secrets.ts';
+import {storeLookup} from '../secrets.ts';
 
-/** Syncs every configured connection; returns the process exit code. */
+/** Syncs every configured instance; returns the process exit code. */
 export async function syncCommand(context: CommandContext): Promise<number> {
-  const environment = {secret: await secretResolver(context.config(), context.secrets.open)};
+  const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
   const ledger = context.ledger();
   let failures = 0;
-  for (const connection of context.config().connections) {
+  for (const instance of context.config().instances) {
     const outcome = await syncConnection({
-      name: connection.name,
-      source: () => context.source(connection, environment),
+      name: instance.id,
+      source: () => context.source(instance, lookup),
       ledger,
       now: context.now,
     });

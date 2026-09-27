@@ -1,5 +1,9 @@
 # 0014 — Connector plugin contract
 
+> Amended by [ADR 0019](0019-plugin-variables-instances-and-shared-secrets.md): plugins declare
+> their variables, connections became instances, and plugin-level settings were replaced by
+> shared secrets.
+
 - Status: Proposed
 - Date: 2026-09-27
 

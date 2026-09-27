@@ -7,7 +7,7 @@ import type {CommandContext} from '../context.ts';
 export function mcpCommand(context: CommandContext): number {
   context.serveMcp({
     ledger: context.readOnlyLedger,
-    connections: context.config().connections.map(connection => connection.name),
+    connections: context.config().instances.map(instance => instance.id),
     now: context.now,
     logError: error => {
       context.output.error(error instanceof Error ? (error.stack ?? error.message) : String(error));

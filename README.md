@@ -88,43 +88,35 @@ it was introduced.
 Requires Node.js 24 LTS or newer and an [Enable Banking](https://enablebanking.com) application
 in restricted mode with your own accounts linked and authorised (one session per bank).
 
-Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
+Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`). Each entry is an
+**instance** of a plugin; its secret variables are never written here:
 
 ```json
 {
-  "plugins": {
-    "enable-banking": {"appId": "<application id>", "privateKey": "file:~/.config/caton-ai/app.pem"}
-  },
-  "connections": [
-    {"name": "mybank", "type": "enable-banking", "sessionId": "<authorised session id>"}
+  "instances": [
+    {
+      "id": "mybank",
+      "title": "My bank",
+      "plugin": "enable-banking",
+      "settings": {"app-id": "<application id>", "session-id": "<authorised session id>"}
+    }
   ]
 }
 ```
 
-Each connection names the connector plugin that serves it (`type`); secrets are referenced, never
-written in the file. See [ADR 0014](docs/adr/0014-connector-plugin-contract.md).
-
-The web interface runs on this computer only, and is where secrets are entered:
+Secrets go in an encrypted store ([ADR 0017](docs/adr/0017-secret-store.md)) as
+`plugin:instance:variable`, here `enable-banking:mybank:private-key`. One secret can serve several
+instances: save it under a name of your choice and enter `${that-name}` as their value
+([ADR 0019](docs/adr/0019-plugin-variables-instances-and-shared-secrets.md)). The web interface
+lists every secret an instance needs, with what it is and where to get it:
 
 ```sh
 npm run build           # builds the web interface once
 npm start -- serve      # prints a one-time link to http://127.0.0.1:7170
 ```
 
-There you create the encrypted secret store, choosing where its key lives, and add the passwords
-and keys that connections refer to as `age:<name>`.
-
-See [ADR 0018](docs/adr/0018-local-web-interface.md) for how it is protected.
-
-Secrets go in an encrypted store ([ADR 0017](docs/adr/0017-secret-store.md)) and are referenced as
-`age:<name>`. Its key can be protected by a passphrase, a key file, a container secret or the OS
-credential store:
-
-```sh
-npm start -- secrets init passphrase    # or: init file <path> | init os-store
-npm start -- secrets set enable-banking-key < ~/.config/caton-ai/app.pem
-npm start -- secrets list               # names only, never values
-```
+See [ADR 0018](docs/adr/0018-local-web-interface.md) for how it is protected. A configuration in
+the first format (`plugins` and `connections`) is converted with `npm start -- config migrate`.
 
 ```sh
 npm ci --ignore-scripts

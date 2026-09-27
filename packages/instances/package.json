@@ -1,0 +1,18 @@
+{
+  "name": "@caton-ai/instances",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Catón AI plugin instances: their ids, the variables they need, secrets and macros.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@caton-ai/api": "0.0.0",
+    "@caton-ai/core": "0.0.0"
+  }
+}

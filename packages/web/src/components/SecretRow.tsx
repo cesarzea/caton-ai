@@ -109,10 +109,13 @@ type RowProps = Readonly<{entry: SecretEntry; onSave: Save; onRemove: (name: str
 function Summary({entry}: Readonly<{entry: SecretEntry}>): ReactNode {
   return (
     <div className="secret-summary">
-      <code>age:{entry.name}</code>
+      <code>{entry.name}</code>
       <span className={entry.stored ? 'badge ok' : 'badge failed'}>
         {entry.stored ? text.secrets.stored : text.secrets.missing}
       </span>
+      {entry.macro === null ? null : (
+        <span className="usage">{text.secrets.macro(entry.macro)}</span>
+      )}
       <span className="usage">
         {entry.usedBy.length === 0 ? text.secrets.unused : text.secrets.usedBy(entry.usedBy)}
       </span>

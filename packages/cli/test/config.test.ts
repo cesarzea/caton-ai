@@ -20,8 +20,10 @@ function directoryWith(files: Readonly<Record<string, [string, number]>>): strin
 }
 
 const valid = JSON.stringify({
-  plugins: {'enable-banking': {appId: 'app', privateKey: 'file:~/key.pem'}},
-  connections: [{name: 'millennium', type: 'enable-banking', sessionId: 's'}],
+  instances: [
+    {id: 'millennium', title: 'Millennium', plugin: 'enable-banking', settings: {'app-id': 'app'}},
+  ],
+  future: 'kept',
 });
 
 afterEach(() => {
@@ -31,13 +33,17 @@ afterEach(() => {
 });
 
 describe('loadConfig', () => {
-  it('loads a private, valid configuration, keeping each connection’s own settings', () => {
+  it('loads a private, valid configuration of instances', () => {
     const config = loadConfig(directoryWith({'config.json': [valid, 0o600]}));
 
-    expect(config.connections).toEqual([
-      {name: 'millennium', type: 'enable-banking', sessionId: 's'},
+    expect(config.instances).toEqual([
+      {
+        id: 'millennium',
+        title: 'Millennium',
+        plugin: 'enable-banking',
+        settings: {'app-id': 'app'},
+      },
     ]);
-    expect(config.plugins['enable-banking']).toEqual({appId: 'app', privateKey: 'file:~/key.pem'});
   });
 
   it('refuses files that other users can read', () => {
@@ -46,13 +52,15 @@ describe('loadConfig', () => {
     expect(() => loadConfig(directory)).toThrow(ConfigError);
   });
 
-  it('explains what is wrong with an invalid configuration', () => {
-    const twice = {name: 'a', type: 'enable-banking'};
-    const cases = ['{"connections": []}', JSON.stringify({connections: [twice, twice]})];
-    for (const content of cases) {
-      const directory = directoryWith({'config.json': [content, 0o600]});
-      expect(() => loadConfig(directory)).toThrow(/is invalid/u);
-    }
+  it('explains what is wrong, and how to move from the first format', () => {
+    const twice = {id: 'a', title: 'A', plugin: 'enable-banking'};
+    const invalid = directoryWith({
+      'config.json': [JSON.stringify({instances: [twice, twice]}), 0o600],
+    });
+    const old = directoryWith({'config.json': ['{"connections": []}', 0o600]});
+
+    expect(() => loadConfig(invalid)).toThrow(/is invalid/u);
+    expect(() => loadConfig(old)).toThrow(/run caton config migrate/u);
   });
 });
 

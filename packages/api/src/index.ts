@@ -6,7 +6,17 @@ import * as z from 'zod';
 /** New passphrases shorter than this are refused, by the store and by the interface. */
 export const MIN_PASSPHRASE_LENGTH = 12;
 
-export const SECRET_NAME = /^[a-z0-9][a-z0-9-]*$/u;
+/** A shared secret, named by the user: lowercase letters, digits and dashes, never a colon. */
+export const SHARED_SECRET_NAME = /^[a-z0-9][a-z0-9-]*$/u;
+
+/** Any key of the store: a shared secret, or `plugin:instance:variable` for one instance. */
+export const SECRET_KEY = /^[a-z0-9][a-z0-9-]*(?::[a-z0-9][a-z0-9-]*:[a-z0-9][a-z0-9-]*)?$/u;
+
+/**
+ * A value that stands for a shared secret: exactly `${name}`, nothing around it. A literal value
+ * that must start with `${` is written `$${`.
+ */
+export const MACRO = /^\$\{([a-z0-9][a-z0-9-]*)\}$/u;
 
 export const keySourceNameSchema = z.enum(['passphrase', 'file', 'os-store']);
 
@@ -18,8 +28,10 @@ export const storeStatusSchema = z.object({
 });
 
 export const connectionStatusSchema = z.object({
-  name: z.string(),
-  type: z.string(),
+  /** The instance id, fixed when the instance is created. */
+  id: z.string(),
+  title: z.string(),
+  plugin: z.string(),
   lastOutcome: z.enum(['ok', 'failed', 'never']),
   lastRunAt: z.string().nullable(),
   lastSuccessfulSyncAt: z.string().nullable(),
@@ -48,7 +60,9 @@ export const secretEntrySchema = z.object({
   name: z.string(),
   /** Whether the store holds a value; values themselves are never sent. */
   stored: z.boolean(),
-  /** Connections and plugins whose settings refer to it as age:<name>. */
+  /** The shared secret its stored value stands for, when it is a `${name}` macro. */
+  macro: z.string().nullable(),
+  /** Titles of the instances that need it. */
   usedBy: z.array(z.string()),
 });
 

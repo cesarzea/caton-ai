@@ -15,12 +15,14 @@ describe('httpApi', () => {
       .fn()
       .mockResolvedValueOnce(reply(204))
       .mockResolvedValueOnce(
-        reply(200, {secrets: [{name: 'imap', stored: true, usedBy: ['amex']}]}),
+        reply(200, {secrets: [{name: 'imap', stored: true, macro: null, usedBy: ['amex']}]}),
       );
     vi.stubGlobal('fetch', fetch);
 
     await httpApi.setSecret('imap', 'value');
-    expect(await httpApi.secrets()).toEqual([{name: 'imap', stored: true, usedBy: ['amex']}]);
+    expect(await httpApi.secrets()).toEqual([
+      {name: 'imap', stored: true, macro: null, usedBy: ['amex']},
+    ]);
     expect(fetch.mock.calls[0]).toEqual([
       '/api/secrets/imap',
       {

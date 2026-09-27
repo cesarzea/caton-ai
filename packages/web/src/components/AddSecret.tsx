@@ -1,4 +1,4 @@
-import {SECRET_NAME} from '@caton-ai/api';
+import {SHARED_SECRET_NAME} from '@caton-ai/api';
 import {useState} from 'react';
 import type {ReactNode} from 'react';
 
@@ -15,7 +15,7 @@ function useSecretForm(onSave: Save) {
   const [value, setValue] = useState('');
   const {busy, error, run, fail} = useAction();
   const submit = onSubmit(() => {
-    if (!SECRET_NAME.test(name)) {
+    if (!SHARED_SECRET_NAME.test(name)) {
       fail(text.secrets.invalidName);
       return;
     }

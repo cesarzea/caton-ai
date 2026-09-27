@@ -5,6 +5,8 @@ import type {Ledger} from '@caton-ai/ledger';
 import type {ServerContext} from '@caton-ai/mcp';
 
 import type {CommandContext} from '../src/context.ts';
+import {fakeConfigFile} from './fake-config-file.ts';
+import type {FakeConfigFile} from './fake-config-file.ts';
 import {fakeSecrets} from './fake-secrets.ts';
 import type {FakeSecrets} from './fake-secrets.ts';
 
@@ -48,7 +50,7 @@ export const failingSource: TransactionSource = {
   listAccounts: () => Promise.reject(new Error('Enable Banking consent is not active')),
 };
 
-export interface TestContext extends CommandContext, FakeSecrets {
+export interface TestContext extends CommandContext, FakeSecrets, FakeConfigFile {
   readonly lines: string[];
   readonly errors: string[];
   readonly served: ServerContext[];
@@ -63,9 +65,9 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
   const served: ServerContext[] = [];
   return {
     ...fakeSecrets(),
+    ...fakeConfigFile(),
     config: () => ({
-      plugins: {},
-      connections: Object.keys(sources).map(name => ({name, type: 'fake'})),
+      instances: Object.keys(sources).map(id => ({id, title: id, plugin: 'fake', settings: {}})),
     }),
     ledger: () => ledger,
     readOnlyLedger: () => ledger,
@@ -75,7 +77,7 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
         origin: `http://127.0.0.1:${String(port)}`,
         accessLink: () => `http://127.0.0.1:${String(port)}/#token=one-time`,
       }),
-    source: connection => sources[connection.name] ?? workingSource,
+    source: instance => sources[instance.id] ?? workingSource,
     output: {line: text => lines.push(text), error: text => errors.push(text)},
     now: () => new Date('2026-09-27T10:00:00Z'),
     locale: 'en-US',
