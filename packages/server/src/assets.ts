@@ -1,5 +1,5 @@
-import {existsSync, readFileSync, readdirSync, statSync} from 'node:fs';
-import {extname, join, relative, sep} from 'node:path';
+import {closeSync, existsSync, fstatSync, openSync, readFileSync, readdirSync} from 'node:fs';
+import {extname, join, sep} from 'node:path';
 
 /** A file of the built interface, served from memory. */
 export interface Asset {
@@ -18,6 +18,16 @@ const TYPES: Readonly<Record<string, string>> = {
   '.json': 'application/json',
 };
 
+/** The contents of a regular file, checked and read through one open descriptor. */
+function regularFile(path: string): Buffer | null {
+  const descriptor = openSync(path, 'r');
+  try {
+    return fstatSync(descriptor).isFile() ? readFileSync(descriptor) : null;
+  } finally {
+    closeSync(descriptor);
+  }
+}
+
 /**
  * Loads the built interface into a fixed table of URL paths, so that a request can only ever
  * get one of these files: path traversal is impossible. `null` when it has not been built.
@@ -28,11 +38,10 @@ export function loadAssets(directory: string): Map<string, Asset> | null {
   }
   const assets = new Map<string, Asset>();
   for (const name of readdirSync(directory, {recursive: true, encoding: 'utf8'})) {
-    const path = join(directory, name);
     const type = TYPES[extname(name)];
-    if (type !== undefined && statSync(path).isFile()) {
-      const url = `/${relative(directory, path).split(sep).join('/')}`;
-      assets.set(url, {body: readFileSync(path), type});
+    const body = type === undefined ? null : regularFile(join(directory, name));
+    if (type !== undefined && body !== null) {
+      assets.set(`/${name.split(sep).join('/')}`, {body, type});
     }
   }
   return assets;

@@ -36,45 +36,50 @@ const openSession: Handler = async (request, response, {sessions}) => {
   sendJson(response, 204);
 };
 
-const ROUTES = new Map<string, Handler>([
-  [
-    'GET /api/status',
-    (_request, response, {store, connections}) => {
-      sendJson(response, 200, {store: store.status(), connections: connections()});
-      return Promise.resolve();
-    },
-  ],
-  [
-    'POST /api/store/init',
-    async (request, response, {store}) => {
-      await store.init(await jsonBody(request, initStoreRequestSchema));
-      sendJson(response, 204);
-    },
-  ],
-  [
-    'POST /api/store/unlock',
-    async (request, response, {store}) => {
-      await store.unlock((await jsonBody(request, unlockRequestSchema)).passphrase);
-      sendJson(response, 204);
-    },
-  ],
-  [
-    'POST /api/store/lock',
-    (_request, response, {store}) => {
-      store.lock();
-      sendJson(response, 204);
-      return Promise.resolve();
-    },
-  ],
-  [
-    'GET /api/secrets',
-    async (_request, response, {store}) => {
-      const vault = store.vault();
-      await vault.reload();
-      sendJson(response, 200, {names: vault.names()});
-    },
-  ],
-]);
+const status: Handler = (_request, response, {store, connections}) => {
+  sendJson(response, 200, {store: store.status(), connections: connections()});
+  return Promise.resolve();
+};
+
+const initStore: Handler = async (request, response, {store}) => {
+  await store.init(await jsonBody(request, initStoreRequestSchema));
+  sendJson(response, 204);
+};
+
+const unlockStore: Handler = async (request, response, {store}) => {
+  await store.unlock((await jsonBody(request, unlockRequestSchema)).passphrase);
+  sendJson(response, 204);
+};
+
+const lockStore: Handler = (_request, response, {store}) => {
+  store.lock();
+  sendJson(response, 204);
+  return Promise.resolve();
+};
+
+const secretNames: Handler = async (_request, response, {store}) => {
+  const vault = store.vault();
+  await vault.reload();
+  sendJson(response, 200, {names: vault.names()});
+};
+
+/** The fixed set of routes; anything else is not found. */
+function routeFor(method: string | undefined, path: string): Handler {
+  switch (`${method ?? ''} ${path}`) {
+    case 'GET /api/status':
+      return status;
+    case 'POST /api/store/init':
+      return initStore;
+    case 'POST /api/store/unlock':
+      return unlockStore;
+    case 'POST /api/store/lock':
+      return lockStore;
+    case 'GET /api/secrets':
+      return secretNames;
+    default:
+      throw new HttpError(404, 'Not found');
+  }
+}
 
 /** Secrets can be written and deleted, never read: no response ever carries a value. */
 async function secretRoute(
@@ -113,9 +118,5 @@ export async function apiRoute(
     await secretRoute(request, response, context, name);
     return;
   }
-  const handler = ROUTES.get(`${request.method ?? ''} ${path}`);
-  if (handler === undefined) {
-    throw new HttpError(404, 'Not found');
-  }
-  await handler(request, response, context);
+  await routeFor(request.method, path)(request, response, context);
 }
