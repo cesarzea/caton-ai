@@ -76,7 +76,9 @@ export const text = {
     remove: 'Remove',
     confirm: 'Confirm removal',
     confirmUsed: (owners: readonly string[]) => `Remove, breaking ${owners.join(', ')}`,
-    addTitle: 'Add another secret',
+    addTitle: 'Add a shared secret',
+    addIntro:
+      'A value several connections can use, such as one app password for several mailboxes. Name it, then choose it in each connection under "Or use a shared secret".',
     name: 'Name',
     value: 'Value',
     save: 'Save secret',
