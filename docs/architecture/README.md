@@ -87,9 +87,10 @@ flowchart TB
 
 Connector plugins, in `plugins/` ([ADR 0014](../adr/0014-connector-plugin-contract.md)):
 
-| Plugin                     | Responsibility                                       | Status  |
-| -------------------------- | ---------------------------------------------------- | ------- |
-| `@caton-ai/enable-banking` | European bank accounts through Enable Banking (PSD2) | Working |
+| Plugin                     | Responsibility                                              | Status      |
+| -------------------------- | ----------------------------------------------------------- | ----------- |
+| `@caton-ai/enable-banking` | European bank accounts through Enable Banking (PSD2)        | Working     |
+| `@caton-ai/email-alerts`   | Card alerts and receipts received by email, read by recipes | In progress |
 
 ## 6. Runtime view — daily sync and watchdog (proposed)
 
