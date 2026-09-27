@@ -19,6 +19,11 @@ export interface KeyDependencies {
   /** Asks the user for the passphrase; `confirm` asks twice, when creating it. */
   readonly askPassphrase: (confirm: boolean) => Promise<string>;
   readonly credentials: CredentialStore;
+  /**
+   * log2 of the scrypt cost of a new passphrase; age's default (18) when absent. Only tests
+   * lower it: decryption takes the cost recorded in the file.
+   */
+  readonly scryptWorkFactor?: number;
 }
 
 /** New passphrases shorter than this are refused, whoever asks for them. */
@@ -54,6 +59,9 @@ export async function saveKey(
         );
       }
       encrypter.setPassphrase(passphrase);
+      if (dependencies.scryptWorkFactor !== undefined) {
+        encrypter.setScryptWorkFactor(dependencies.scryptWorkFactor);
+      }
       writePrivate(wrappedKeyPath(directory), await encrypter.encrypt(identity), false);
       return;
     }

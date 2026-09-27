@@ -49,5 +49,7 @@ export function dependencies(
       return Promise.resolve(passphrase);
     },
     credentials: memoryCredentials(),
+    // A low scrypt cost keeps tests fast; production uses age's default.
+    scryptWorkFactor: 10,
   };
 }

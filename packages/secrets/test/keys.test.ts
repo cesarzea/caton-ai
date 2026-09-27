@@ -18,7 +18,7 @@ describe('passphrase key', () => {
     await expect(openVault(directory, dependencies('wrong'))).rejects.toThrow(
       'Wrong passphrase for the secret store',
     );
-  }, 30_000);
+  });
 });
 
 describe('OS credential store key', () => {
