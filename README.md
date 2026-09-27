@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/cesarzea/caton-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/cesarzea/caton-ai/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/cesarzea/caton-ai/actions/workflows/codeql.yml/badge.svg)](https://github.com/cesarzea/caton-ai/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/cesarzea/caton-ai/badge)](https://scorecard.dev/viewer/?uri=github.com/cesarzea/caton-ai)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A local-first, plugin-based financial watchdog for individuals and small businesses.**
@@ -28,6 +29,11 @@ plays the same role for your finances: it keeps watch, and it tells you when som
   the network; nothing gets network access by default.
 - **Reviewed before activation.** Plugins are checked automatically — including an AI-assisted
   security and functionality review — before they touch your data.
+
+## Documentation
+
+- [Architecture (arc42 + C4)](docs/architecture/README.md)
+- [Architecture Decision Records](docs/adr/README.md)
 
 ## Development
 
