@@ -6,7 +6,7 @@ import type {Vault} from '@caton-ai/secrets';
 import {afterEach, describe, expect, it} from 'vitest';
 
 import {ConfigError} from '../src/config.ts';
-import {passphraseAsker, secretResolver} from '../src/secrets.ts';
+import {passphraseAsker, secretReferences, secretResolver} from '../src/secrets.ts';
 
 const directories: string[] = [];
 afterEach(() => {
@@ -79,5 +79,28 @@ describe('passphraseAsker', () => {
     await expect(passphraseAsker(answering('a long passphrase', 'typo'))(true)).rejects.toThrow(
       'The passphrases do not match',
     );
+  });
+});
+
+describe('secretReferences', () => {
+  it('names who needs each store secret: connections, and plugins for all their connections', () => {
+    const references = secretReferences({
+      plugins: {'enable-banking': {appId: 'app', privateKey: 'age:enable-banking-key'}},
+      connections: [
+        {name: 'amex', type: 'email-alerts', imap: {credential: 'age:work-imap', user: 'me'}},
+        {
+          name: 'receipts',
+          type: 'email-alerts',
+          imap: {credential: 'age:work-imap'},
+          other: 'age:work-imap',
+        },
+        {name: 'millennium', type: 'enable-banking', sessionId: 'file:/not/the/store'},
+      ],
+    });
+
+    expect(Object.fromEntries(references)).toEqual({
+      'enable-banking-key': ['enable-banking (all its connections)'],
+      'work-imap': ['amex', 'receipts'],
+    });
   });
 });

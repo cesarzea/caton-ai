@@ -274,16 +274,60 @@ h2 {
 }
 
 .secret {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
+  display: grid;
+  gap: 10px;
+  padding: 14px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.secret.missing {
+  padding-left: 12px;
+  border-left: 3px solid var(--bad);
+}
+
+.secret-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
 .secret code {
   font-family: var(--mono);
   font-size: 13px;
+}
+
+.usage {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.secret-actions,
+.value-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.value-editor .field {
+  flex: 1 1 260px;
+  margin-bottom: 0;
+}
+
+.value-editor .notice {
+  flex-basis: 100%;
+}
+
+.file-loader {
+  display: inline-flex;
+  align-items: center;
+}
+
+.form-title {
+  grid-column: 1 / -1;
+  margin: 8px 0 0;
+  font-size: 14px;
 }
 
 .inline-form {

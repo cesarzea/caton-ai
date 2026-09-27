@@ -11,12 +11,15 @@ import type {ConnectionStatus} from '@caton-ai/api';
 import {HttpError, jsonBody, sendJson} from './http.ts';
 import {sessionCookie} from './sessions.ts';
 import type {Sessions} from './sessions.ts';
+import {secretEntries} from './secret-list.ts';
+import type {SecretReferences} from './secret-list.ts';
 import type {StoreHolder} from './store-holder.ts';
 
 export interface ApiContext {
   readonly sessions: Sessions;
   readonly store: StoreHolder;
   readonly connections: () => ConnectionStatus[];
+  readonly secretReferences: () => SecretReferences;
 }
 
 type Handler = (
@@ -57,10 +60,10 @@ const lockStore: Handler = (_request, response, {store}) => {
   return Promise.resolve();
 };
 
-const secretNames: Handler = async (_request, response, {store}) => {
+const secretList: Handler = async (_request, response, {store, secretReferences}) => {
   const vault = store.vault();
   await vault.reload();
-  sendJson(response, 200, {names: vault.names()});
+  sendJson(response, 200, {secrets: secretEntries(vault.names(), secretReferences())});
 };
 
 /** The fixed set of routes; anything else is not found. */
@@ -75,7 +78,7 @@ function routeFor(method: string | undefined, path: string): Handler {
     case 'POST /api/store/lock':
       return lockStore;
     case 'GET /api/secrets':
-      return secretNames;
+      return secretList;
     default:
       throw new HttpError(404, 'Not found');
   }

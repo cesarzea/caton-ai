@@ -44,7 +44,16 @@ export const initStoreRequestSchema = z.discriminatedUnion('source', [
 
 export const unlockRequestSchema = z.object({passphrase: z.string().min(1).max(1_024)});
 
-export const secretNamesSchema = z.object({names: z.array(z.string())});
+export const secretEntrySchema = z.object({
+  name: z.string(),
+  /** Whether the store holds a value; values themselves are never sent. */
+  stored: z.boolean(),
+  /** Connections and plugins whose settings refer to it as age:<name>. */
+  usedBy: z.array(z.string()),
+});
+
+/** Every stored secret, and every secret the configuration needs, stored or not. */
+export const secretListSchema = z.object({secrets: z.array(secretEntrySchema)});
 
 export const setSecretRequestSchema = z.object({value: z.string().min(1).max(65_536)});
 
@@ -54,3 +63,4 @@ export type Status = z.infer<typeof statusSchema>;
 export type StoreStatus = z.infer<typeof storeStatusSchema>;
 export type ConnectionStatus = z.infer<typeof connectionStatusSchema>;
 export type InitStoreRequest = z.infer<typeof initStoreRequestSchema>;
+export type SecretEntry = z.infer<typeof secretEntrySchema>;

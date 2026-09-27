@@ -1,5 +1,5 @@
-import {errorSchema, secretNamesSchema, statusSchema} from '@caton-ai/api';
-import type {InitStoreRequest, Status} from '@caton-ai/api';
+import {errorSchema, secretListSchema, statusSchema} from '@caton-ai/api';
+import type {InitStoreRequest, SecretEntry, Status} from '@caton-ai/api';
 
 /** A refused request, with the message the server wrote for the user. */
 export class ApiError extends Error {
@@ -45,8 +45,8 @@ export const httpApi = {
   unlock: (passphrase: string): Promise<void> =>
     send('POST', '/api/store/unlock', {passphrase}).then(done),
   lock: (): Promise<void> => send('POST', '/api/store/lock').then(done),
-  secretNames: async (): Promise<string[]> =>
-    secretNamesSchema.parse(await (await send('GET', '/api/secrets')).json()).names,
+  secrets: async (): Promise<SecretEntry[]> =>
+    secretListSchema.parse(await (await send('GET', '/api/secrets')).json()).secrets,
   setSecret: (name: string, value: string): Promise<void> =>
     send('PUT', secretPath(name), {value}).then(done),
   removeSecret: (name: string): Promise<void> => send('DELETE', secretPath(name)).then(done),

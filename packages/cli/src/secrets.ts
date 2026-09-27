@@ -3,20 +3,40 @@ import {readFileSync} from 'node:fs';
 import type {Vault} from '@caton-ai/secrets';
 
 import {ConfigError, assertPrivate} from './config.ts';
+import type {CatonConfig} from './config.ts';
 import {expandHome} from './paths.ts';
 
 const FILE = 'file:';
 const STORE = 'age:';
 
-/** Whether any setting refers to the secret store, so that it is opened only when needed. */
-function refersToStore(value: unknown): boolean {
+/** Names of the store secrets a setting refers to, however deeply nested. */
+function storeNames(value: unknown): string[] {
   if (typeof value === 'string') {
-    return value.startsWith(STORE);
+    return value.startsWith(STORE) ? [value.slice(STORE.length)] : [];
   }
-  if (typeof value === 'object' && value !== null) {
-    return Object.values(value).some(refersToStore);
-  }
-  return false;
+  return typeof value === 'object' && value !== null
+    ? Object.values(value).flatMap(storeNames)
+    : [];
+}
+
+/**
+ * Who refers to each store secret: a connection by its name, or a plugin whose shared settings
+ * serve all its connections. It tells the interface which secrets are needed.
+ */
+export function secretReferences(config: CatonConfig): Map<string, string[]> {
+  const references = new Map<string, string[]>();
+  const add = (owner: string, settings: unknown): void => {
+    for (const name of new Set(storeNames(settings))) {
+      references.set(name, [...(references.get(name) ?? []), owner]);
+    }
+  };
+  Object.entries(config.plugins).forEach(([id, settings]) => {
+    add(`${id} (all its connections)`, settings);
+  });
+  config.connections.forEach(connection => {
+    add(connection.name, connection);
+  });
+  return references;
 }
 
 function fromFile(path: string): string {
@@ -47,11 +67,12 @@ export async function secretResolver(
   config: unknown,
   openVault: () => Promise<Vault>,
 ): Promise<(reference: string) => string> {
-  const vault = refersToStore(config)
-    ? await openVault().catch((error: unknown) =>
-        error instanceof Error ? error : new Error(String(error)),
-      )
-    : undefined;
+  const vault =
+    storeNames(config).length > 0
+      ? await openVault().catch((error: unknown) =>
+          error instanceof Error ? error : new Error(String(error)),
+        )
+      : undefined;
   return reference => {
     if (reference.startsWith(FILE)) {
       return fromFile(reference.slice(FILE.length));

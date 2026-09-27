@@ -24,7 +24,9 @@ const CONNECTIONS: ConnectionStatus[] = [
 
 export interface FakeApi extends Api {
   readonly calls: unknown[][];
-  readonly secrets: Map<string, string>;
+  readonly stored: Map<string, string>;
+  /** Secrets the configuration refers to, with who uses them. */
+  readonly required: Map<string, string[]>;
   store: StoreStatus;
   signedIn: boolean;
 }
@@ -34,16 +36,23 @@ type Record = (...call: unknown[]) => Promise<void>;
 function secretsOf(
   api: FakeApi,
   record: Record,
-): Pick<Api, 'secretNames' | 'setSecret' | 'removeSecret'> {
+): Pick<Api, 'secrets' | 'setSecret' | 'removeSecret'> {
   return {
-    secretNames: () => Promise.resolve([...api.secrets.keys()].sort((a, b) => a.localeCompare(b))),
+    secrets: () =>
+      Promise.resolve(
+        [...new Set([...api.required.keys(), ...api.stored.keys()])].map(name => ({
+          name,
+          stored: api.stored.has(name),
+          usedBy: api.required.get(name) ?? [],
+        })),
+      ),
     setSecret: async (name, value) => {
       await record('setSecret', name);
-      api.secrets.set(name, value);
+      api.stored.set(name, value);
     },
     removeSecret: async name => {
       await record('removeSecret', name);
-      api.secrets.delete(name);
+      api.stored.delete(name);
     },
   };
 }
@@ -77,7 +86,8 @@ export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
   };
   const api = {
     calls,
-    secrets: new Map<string, string>(),
+    stored: new Map<string, string>(),
+    required: new Map<string, string[]>(),
     store: {state: 'missing', keySource: null, error: null, ...store},
     signedIn: true,
   } as FakeApi;

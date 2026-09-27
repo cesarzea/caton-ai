@@ -16,7 +16,7 @@ import {connectionStatuses} from './connection-status.ts';
 import {sourceFactory} from './connectors.ts';
 import {terminalOutput} from './output.ts';
 import {configDirectory, dataDirectory} from './paths.ts';
-import {passphraseAsker} from './secrets.ts';
+import {passphraseAsker, secretReferences} from './secrets.ts';
 import {terminalInput} from './terminal.ts';
 
 let loadedConfig: CatonConfig | undefined;
@@ -56,6 +56,7 @@ try {
           connectionStatuses(config(), () =>
             existsSync(ledgerPath()) ? openLedgerReadOnly(ledgerPath()) : null,
           ),
+        secretReferences: () => secretReferences(config()),
         assets: loadAssets(webDirectory),
         log: message => {
           process.stderr.write(`${message}\n`);
