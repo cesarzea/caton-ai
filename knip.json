@@ -2,7 +2,7 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "workspaces": {
     ".": {
-      "entry": ["*.config.{js,ts}"]
+      "entry": ["*.config.{js,ts}", "scripts/*.ts"]
     },
     "packages/api": {
       "project": ["src/**/*.ts"]
@@ -34,6 +34,10 @@
     "packages/sync": {
       "entry": ["test/**/*.test.ts"],
       "project": ["src/**/*.ts", "test/**/*.ts"]
+    },
+    "packages/web": {
+      "entry": ["test/**/*.test.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}"]
     },
     "plugins/email-alerts": {
       "entry": ["test/**/*.test.ts"],

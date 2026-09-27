@@ -18,13 +18,14 @@
     "plugins/*"
   ],
   "scripts": {
-    "check": "npm run typecheck && npm run lint && npm run format:check && npm run deps && npm run knip && npm run test",
-    "typecheck": "tsc --project tsconfig.json",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm run deps && npm run knip && npm run build && npm run test",
+    "typecheck": "tsc --project tsconfig.json && tsc --project packages/web/tsconfig.json",
     "lint": "eslint --max-warnings 0 .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "deps": "depcruise packages plugins --config .dependency-cruiser.cjs",
     "knip": "knip",
+    "build": "npm run build -w @caton-ai/web && node scripts/verify-web-build.ts",
     "test": "vitest run --coverage",
     "start": "node packages/cli/src/main.ts",
     "lint:commit": "commitlint"
@@ -39,11 +40,15 @@
     "dependency-cruiser": "18.4.0",
     "eslint": "10.11.0",
     "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-react-hooks": "7.1.1",
     "eslint-plugin-sonarjs": "4.2.1",
     "knip": "6.38.0",
     "prettier": "3.9.9",
     "typescript": "6.0.3",
     "typescript-eslint": "8.70.1",
     "vitest": "5.0.2"
+  },
+  "overrides": {
+    "vite": "8.3.0"
   }
 }

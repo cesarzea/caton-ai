@@ -1,6 +1,7 @@
 // @ts-check
 import eslint from '@eslint/js';
 import prettier from 'eslint-config-prettier';
+import reactHooks from 'eslint-plugin-react-hooks';
 import sonarjs from 'eslint-plugin-sonarjs';
 import {defineConfig, globalIgnores} from 'eslint/config';
 import tseslint from 'typescript-eslint';
@@ -25,7 +26,7 @@ const namedExportsOnly = {
 };
 
 export default defineConfig([
-  globalIgnores(['coverage/', 'node_modules/']),
+  globalIgnores(['coverage/', 'node_modules/', '**/dist/']),
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
@@ -44,7 +45,25 @@ export default defineConfig([
     },
   },
   {
-    files: ['*.config.{js,ts,cjs}', '.*.cjs'],
+    files: ['packages/web/**/*.{ts,tsx}'],
+    extends: [reactHooks.configs.flat['recommended-latest']],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        ...namedExportsOnly['no-restricted-syntax'].slice(1),
+        {
+          selector: "JSXAttribute[name.name='style']",
+          message: 'Inline styles are blocked by the Content Security Policy: use a class.',
+        },
+        {
+          selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']",
+          message: 'Never inject HTML.',
+        },
+      ],
+    },
+  },
+  {
+    files: ['*.config.{js,ts,cjs}', 'packages/*/vite.config.ts', '.*.cjs'],
     rules: {'no-restricted-syntax': 'off'},
   },
   {
