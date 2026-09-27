@@ -13,7 +13,7 @@ watch it for you: budgets, goals, cash-flow forecasts, and alerts such as _"tell
 Anthropic spend goes over $20"_.
 
 > **Status: pre-alpha.** A first command-line version syncs European bank accounts through
-> Enable Banking into a local ledger and reports monthly spend. Plugins, agents, alerts and the web
+> Enable Banking into a local ledger and reports monthly outflows. Plugins, agents, alerts and the web
 > UI are not built yet.
 
 ## Why the name
@@ -101,12 +101,13 @@ Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
 npm ci --ignore-scripts
 npm start -- sync       # fetch accounts, movements and balances into the local ledger
 npm start -- accounts   # accounts and latest balances
-npm start -- spend 3    # money spent per month, last 3 months (cash basis)
+npm start -- spend 3    # money leaving your accounts per month, last 3 months (cash basis)
 npm start -- status     # last sync of every connection
 ```
 
-Unattended PSD2 access allows only a few requests per account per day, so sync at most a few
-times a day. Current limitations are tracked in [ADR 0012](docs/adr/0012-interim-local-secrets-and-ledger-storage.md).
+Outflows still include transfers between your own accounts; transfer detection and
+categorisation are next. Unattended PSD2 access allows only a few requests per account per day
+(the exact quota is still to be verified), so sync at most once or twice a day. Current limitations are tracked in [ADR 0012](docs/adr/0012-interim-local-secrets-and-ledger-storage.md).
 
 ## Development
 
