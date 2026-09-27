@@ -4,6 +4,7 @@ import type {ServerContext} from '@caton-ai/mcp';
 import type {KeySource, Vault} from '@caton-ai/secrets';
 
 import type {CatonConfig} from './config.ts';
+import type {ConfigFile} from './config-file.ts';
 import type {SourceFor} from './connectors.ts';
 import type {Output} from './output.ts';
 
@@ -17,11 +18,8 @@ export interface CommandContext {
   readonly source: SourceFor;
   /** The variables each installed plugin declares. */
   readonly catalog: Catalog;
-  /** The configuration file as JSON, and its replacement, which returns the backup's path. */
-  readonly configFile: {
-    readonly read: () => unknown;
-    readonly replace: (config: unknown) => string;
-  };
+  /** The configuration file as JSON. */
+  readonly configFile: ConfigFile;
   /** The encrypted secret store (ADR 0017); opening it may ask for its passphrase. */
   readonly secrets: {
     readonly init: (key: KeySource) => Promise<void>;

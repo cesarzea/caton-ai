@@ -359,3 +359,90 @@ h2 {
     grid-template-columns: 1fr;
   }
 }
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.variable {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.variable > label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.optional,
+.hint {
+  color: var(--muted);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+.help {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.help p,
+.help ul {
+  margin: 4px 0;
+}
+
+.help code,
+.hint code {
+  font-family: var(--mono);
+}
+
+.help a {
+  color: var(--primary);
+}
+
+.variable select,
+.shared-picker select {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.secret-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.secret-inputs input {
+  flex: 1 1 240px;
+}
+
+.shared-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.choices legend {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+}

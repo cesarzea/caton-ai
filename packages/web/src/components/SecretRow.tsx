@@ -7,6 +7,7 @@ import {text} from '../text.ts';
 import {useAction} from '../use-action.ts';
 import type {Save} from './AddSecret.tsx';
 import {Field} from './Field.tsx';
+import {FileLoader} from './FileLoader.tsx';
 import {Notice} from './Layout.tsx';
 
 type EditorProps = Readonly<{
@@ -15,24 +16,6 @@ type EditorProps = Readonly<{
   onDone: () => void;
   onCancel?: () => void;
 }>;
-
-type FileProps = Readonly<{name: string; onLoad: (value: string) => void}>;
-
-/** Multi-line secrets such as PEM keys are loaded whole from a file: pasting into a field would lose their line breaks. */
-function FileLoader({name, onLoad}: FileProps): ReactNode {
-  return (
-    <label className="button secondary file-loader">
-      {text.secrets.fromFile(name)}
-      <input
-        type="file"
-        className="visually-hidden"
-        onChange={event => {
-          void event.target.files?.[0]?.text().then(onLoad);
-        }}
-      />
-    </label>
-  );
-}
 
 /** Where a value is typed or loaded: it is sent once and never shown again. */
 function useValueEditor(name: string, onSave: Save, onDone: () => void) {
@@ -67,7 +50,7 @@ function ValueEditor({name, onSave, onDone, onCancel}: EditorProps): ReactNode {
       <button type="submit" className="button primary" disabled={busy || value === ''}>
         {text.secrets.saveValue}
       </button>
-      <FileLoader name={name} onLoad={save} />
+      <FileLoader label={text.secrets.fromFile(name)} onLoad={save} />
       {onCancel === undefined ? null : (
         <button type="button" className="button secondary" onClick={onCancel}>
           {text.secrets.cancel}

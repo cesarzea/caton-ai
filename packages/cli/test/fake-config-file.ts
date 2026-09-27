@@ -13,6 +13,10 @@ export function fakeConfigFile(): FakeConfigFile {
     catalog: new Map(),
     configFile: {
       read: () => file.current,
+      write: config => {
+        file.current = config;
+        file.written.push(config);
+      },
       replace: config => {
         file.current = config;
         file.written.push(config);

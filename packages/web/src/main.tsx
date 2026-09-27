@@ -1,7 +1,7 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 
-import {httpApi} from './api.ts';
+import {api} from './api.ts';
 import {App} from './App.tsx';
 import './styles.css';
 
@@ -19,7 +19,7 @@ const root = document.getElementById('root');
 if (root !== null) {
   createRoot(root).render(
     <StrictMode>
-      <App api={httpApi} address={address} />
+      <App api={api} address={address} />
     </StrictMode>,
   );
 }

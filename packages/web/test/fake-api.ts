@@ -2,6 +2,8 @@ import type {ConnectionStatus, InitStoreRequest, StoreStatus} from '@caton-ai/ap
 
 import {ApiError} from '../src/api.ts';
 import type {Api} from '../src/api.ts';
+import {configurationOf} from './fake-configuration.ts';
+import type {FakeState, Record} from './fake-state.ts';
 
 const CONNECTIONS: ConnectionStatus[] = [
   {
@@ -24,19 +26,10 @@ const CONNECTIONS: ConnectionStatus[] = [
   },
 ];
 
-export interface FakeApi extends Api {
-  readonly calls: unknown[][];
-  readonly stored: Map<string, string>;
-  /** Secrets the configuration refers to, with who uses them. */
-  readonly required: Map<string, string[]>;
-  store: StoreStatus;
-  signedIn: boolean;
-}
-
-type Record = (...call: unknown[]) => Promise<void>;
+export interface FakeApi extends Api, FakeState {}
 
 function secretsOf(
-  api: FakeApi,
+  api: FakeState,
   record: Record,
 ): Pick<Api, 'secrets' | 'setSecret' | 'removeSecret'> {
   return {
@@ -60,7 +53,7 @@ function secretsOf(
   };
 }
 
-function storeOf(api: FakeApi, record: Record): Pick<Api, 'initStore' | 'unlock' | 'lock'> {
+function storeOf(api: FakeState, record: Record): Pick<Api, 'initStore' | 'unlock' | 'lock'> {
   return {
     initStore: async (request: InitStoreRequest) => {
       await record('initStore', request);
@@ -80,22 +73,9 @@ function storeOf(api: FakeApi, record: Record): Pick<Api, 'initStore' | 'unlock'
   };
 }
 
-/** An in-memory server: a passphrase store opens with "correct passphrase". */
-export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
-  const calls: unknown[][] = [];
-  const record: Record = (...call) => {
-    calls.push(call);
-    return Promise.resolve();
-  };
-  const api = {
-    calls,
-    stored: new Map<string, string>(),
-    required: new Map<string, string[]>(),
-    store: {state: 'missing', keySource: null, error: null, ...store},
-    signedIn: true,
-  } as FakeApi;
-  return Object.assign(api, {
-    signIn: async (token: string) => {
+function sessionOf(api: FakeState, record: Record): Pick<Api, 'signIn' | 'status'> {
+  return {
+    signIn: async token => {
       await record('signIn', token);
       api.signedIn = token === 'valid';
       if (!api.signedIn) {
@@ -106,7 +86,35 @@ export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
       api.signedIn
         ? Promise.resolve({store: api.store, connections: CONNECTIONS})
         : Promise.reject(new ApiError(401, 'Sign in')),
+  };
+}
+
+/** An in-memory server: a passphrase store opens with "correct passphrase". */
+export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
+  const calls: unknown[][] = [];
+  const record: Record = (...call) => {
+    calls.push(call);
+    return Promise.resolve();
+  };
+  const api: FakeState = {
+    calls,
+    stored: new Map<string, string>(),
+    required: new Map<string, string[]>(),
+    configured: [
+      {
+        id: 'amex',
+        title: 'Amex',
+        plugin: 'email-alerts',
+        settings: {'imap-user': 'me@example.com', 'imap-port': 993},
+      },
+    ],
+    store: {state: 'missing', keySource: null, error: null, ...store},
+    signedIn: true,
+  };
+  return Object.assign(api, {
+    ...sessionOf(api, record),
     ...storeOf(api, record),
     ...secretsOf(api, record),
+    ...configurationOf(api, record),
   });
 }

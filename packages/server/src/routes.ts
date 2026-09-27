@@ -1,51 +1,36 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 
-import {
-  SECRET_KEY,
-  initStoreRequestSchema,
-  sessionRequestSchema,
-  setSecretRequestSchema,
-  unlockRequestSchema,
-} from '@caton-ai/api';
-import type {ConnectionStatus} from '@caton-ai/api';
+import {sessionRequestSchema} from '@caton-ai/api';
 
+import type {ApiContext, Handler} from './api-context.ts';
 import {HttpError, jsonBody, sendJson} from './http.ts';
+import {
+  initStore,
+  lockStore,
+  secretKeyOf,
+  secretList,
+  secretRoute,
+  status,
+  unlockStore,
+} from './store-routes.ts';
+import {createInstance, deleteInstance, updateInstance} from './instances.ts';
 import {sessionCookie} from './sessions.ts';
-import type {Sessions} from './sessions.ts';
-import {secretEntries} from './secret-list.ts';
-import type {SecretNeeds} from './secret-list.ts';
-import type {StoreHolder} from './store-holder.ts';
 
-export interface ApiContext {
-  readonly sessions: Sessions;
-  readonly store: StoreHolder;
-  readonly connections: () => ConnectionStatus[];
-  readonly secretNeeds: () => SecretNeeds;
-}
+const INSTANCE_PATH = /^\/api\/instances\/([a-z0-9][a-z0-9-]*)$/u;
 
-type Handler = (
+async function instanceRoute(
   request: IncomingMessage,
   response: ServerResponse,
-  context: ApiContext,
-) => Promise<void>;
-
-const SECRET_PREFIX = '/api/secrets/';
-
-/** The store key in a secret path, decoded exactly once (`:` arrives as `%3A`) and then validated. */
-function secretKeyOf(path: string): string | null {
-  if (!path.startsWith(SECRET_PREFIX)) {
-    return null;
+  {plugins, configuration}: ApiContext,
+  id: string,
+): Promise<void> {
+  if (request.method === 'PUT') {
+    await updateInstance(request, response, {plugins, configuration}, id);
+  } else if (request.method === 'DELETE') {
+    deleteInstance(response, configuration, id);
+  } else {
+    throw new HttpError(405, 'Method not allowed');
   }
-  let key: string;
-  try {
-    key = decodeURIComponent(path.slice(SECRET_PREFIX.length));
-  } catch {
-    throw new HttpError(400, 'Malformed secret key');
-  }
-  if (!SECRET_KEY.test(key)) {
-    throw new HttpError(404, 'Not found');
-  }
-  return key;
 }
 
 const openSession: Handler = async (request, response, {sessions}) => {
@@ -57,38 +42,21 @@ const openSession: Handler = async (request, response, {sessions}) => {
   sendJson(response, 204);
 };
 
-const status: Handler = (_request, response, {store, connections}) => {
-  sendJson(response, 200, {store: store.status(), connections: connections()});
+const pluginList: Handler = (_request, response, {plugins}) => {
+  sendJson(response, 200, {plugins});
   return Promise.resolve();
 };
 
-const initStore: Handler = async (request, response, {store}) => {
-  await store.init(await jsonBody(request, initStoreRequestSchema));
-  sendJson(response, 204);
-};
-
-const unlockStore: Handler = async (request, response, {store}) => {
-  await store.unlock((await jsonBody(request, unlockRequestSchema)).passphrase);
-  sendJson(response, 204);
-};
-
-const lockStore: Handler = (_request, response, {store}) => {
-  store.lock();
-  sendJson(response, 204);
+const instanceList: Handler = (_request, response, {configuration}) => {
+  sendJson(response, 200, {instances: configuration.instances()});
   return Promise.resolve();
 };
 
-const secretList: Handler = async (_request, response, {store, secretNeeds}) => {
-  const vault = store.vault();
-  await vault.reload();
-  sendJson(response, 200, {
-    secrets: secretEntries({names: vault.names(), get: key => vault.get(key)}, secretNeeds()),
-  });
-};
+const newInstance: Handler = (request, response, context) =>
+  createInstance(request, response, context);
 
-/** The fixed set of routes; anything else is not found. */
-function routeFor(method: string | undefined, path: string): Handler {
-  switch (`${method ?? ''} ${path}`) {
+function storeRouteFor(route: string): Handler | undefined {
+  switch (route) {
     case 'GET /api/status':
       return status;
     case 'POST /api/store/init':
@@ -100,26 +68,31 @@ function routeFor(method: string | undefined, path: string): Handler {
     case 'GET /api/secrets':
       return secretList;
     default:
-      throw new HttpError(404, 'Not found');
+      return undefined;
   }
 }
 
-/** Secrets can be written and deleted, never read: no response ever carries a value. */
-async function secretRoute(
-  request: IncomingMessage,
-  response: ServerResponse,
-  context: ApiContext,
-  name: string,
-): Promise<void> {
-  if (request.method === 'PUT') {
-    const {value} = await jsonBody(request, setSecretRequestSchema);
-    await context.store.vault().set(name, value);
-    sendJson(response, 204);
-  } else if (request.method === 'DELETE') {
-    sendJson(response, (await context.store.vault().remove(name)) ? 204 : 404);
-  } else {
-    throw new HttpError(405, 'Method not allowed');
+function configurationRouteFor(route: string): Handler | undefined {
+  switch (route) {
+    case 'GET /api/plugins':
+      return pluginList;
+    case 'GET /api/instances':
+      return instanceList;
+    case 'POST /api/instances':
+      return newInstance;
+    default:
+      return undefined;
   }
+}
+
+/** The fixed set of routes; anything else is not found. */
+function routeFor(method: string | undefined, path: string): Handler {
+  const route = `${method ?? ''} ${path}`;
+  const handler = storeRouteFor(route) ?? configurationRouteFor(route);
+  if (handler === undefined) {
+    throw new HttpError(404, 'Not found');
+  }
+  return handler;
 }
 
 /** Routes an API request; every route but the session exchange needs a session. */
@@ -135,6 +108,11 @@ export async function apiRoute(
   }
   if (!context.sessions.isValid(request.headers.cookie)) {
     throw new HttpError(401, 'Open Catón AI with the link printed by caton serve');
+  }
+  const instance = INSTANCE_PATH.exec(path)?.[1];
+  if (instance !== undefined) {
+    await instanceRoute(request, response, context, instance);
+    return;
   }
   const key = secretKeyOf(path);
   if (key !== null) {

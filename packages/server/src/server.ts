@@ -2,16 +2,17 @@ import {createServer} from 'node:http';
 import type {IncomingMessage, ServerResponse} from 'node:http';
 import type {AddressInfo} from 'node:net';
 
-import type {ConnectionStatus} from '@caton-ai/api';
+import type {ConnectionStatus, PluginInfo} from '@caton-ai/api';
 import type {CredentialStore} from '@caton-ai/secrets';
 
 import type {Asset} from './assets.ts';
 import {placeholderAssets} from './assets.ts';
 import {guardRequest} from './guard.ts';
 import {HttpError, secureHeaders, sendJson} from './http.ts';
+import type {Configuration} from './instances.ts';
 import {apiRoute} from './routes.ts';
 import type {SecretNeeds} from './secret-list.ts';
-import type {ApiContext} from './routes.ts';
+import type {ApiContext} from './api-context.ts';
 import {createSessions} from './sessions.ts';
 import {createStoreHolder} from './store-holder.ts';
 
@@ -26,6 +27,10 @@ export interface ServerOptions {
   readonly connections: () => ConnectionStatus[];
   /** The store keys the instances need, with who needs each. */
   readonly secretNeeds: () => SecretNeeds;
+  /** The installed plugins and the variables they declare. */
+  readonly plugins: readonly PluginInfo[];
+  /** The instances of the configuration file. */
+  readonly configuration: Configuration;
   /** The built interface; a placeholder page when `null`. */
   readonly assets: ReadonlyMap<string, Asset> | null;
   /** Unexpected errors, out of band. Request bodies are never logged. */
@@ -101,20 +106,26 @@ function listen(server: ReturnType<typeof createServer>, port: number): Promise<
   });
 }
 
-/** Starts the local web server on the loopback address. */
-export async function startServer(options: ServerOptions): Promise<RunningServer> {
+async function contextOf(options: ServerOptions): Promise<ApiContext> {
   const store = createStoreHolder({
     directory: options.secretsDirectory,
     credentials: options.credentials,
     ...(options.scryptWorkFactor === undefined ? {} : {scryptWorkFactor: options.scryptWorkFactor}),
   });
   await store.autoUnlock();
-  const context: ApiContext = {
+  return {
     sessions: createSessions(),
     store,
     connections: options.connections,
     secretNeeds: options.secretNeeds,
+    plugins: options.plugins,
+    configuration: options.configuration,
   };
+}
+
+/** Starts the local web server on the loopback address. */
+export async function startServer(options: ServerOptions): Promise<RunningServer> {
+  const context = await contextOf(options);
   let port = options.port;
   const server = createServer((request, response) => {
     void handler(options, context, () => port)(request, response);

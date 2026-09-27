@@ -9,6 +9,7 @@ import {afterEach} from 'vitest';
 
 import {startServer} from '../src/index.ts';
 import type {RunningServer, ServerOptions} from '../src/index.ts';
+import {PLUGINS, memoryConfiguration} from './plugins-fixture.ts';
 
 const cleanups: (() => Promise<void> | void)[] = [];
 
@@ -64,6 +65,8 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     credentials: memoryCredentials(),
     connections: () => CONNECTIONS,
     secretNeeds: () => new Map([['email-alerts:amex:imap-password', ['Amex']]]),
+    plugins: PLUGINS,
+    configuration: memoryConfiguration(),
     assets: null,
     log: message => {
       logged.push(message);

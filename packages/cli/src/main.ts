@@ -15,6 +15,7 @@ import {loadConfig} from './config.ts';
 import type {CatonConfig} from './config.ts';
 import {connectionStatuses} from './connection-status.ts';
 import {configFile} from './config-file.ts';
+import {editableConfiguration, pluginInfos} from './configuration.ts';
 import {catalogOf, sourceFactory} from './connectors.ts';
 import {terminalOutput} from './output.ts';
 import {configDirectory, dataDirectory} from './paths.ts';
@@ -22,6 +23,9 @@ import {passphraseAsker} from './secrets.ts';
 import {terminalInput} from './terminal.ts';
 
 let loadedConfig: CatonConfig | undefined;
+const forgetConfig = (): void => {
+  loadedConfig = undefined;
+};
 const config = (): CatonConfig => (loadedConfig ??= loadConfig(configDirectory(process.env)));
 const output = terminalOutput(process.stdout, process.stderr);
 const ledgerPath = (): string => join(dataDirectory(process.env), 'ledger.sqlite');
@@ -31,6 +35,7 @@ const connectors = [enableBankingConnector, emailAlertsConnector];
 const catalog = catalogOf(connectors);
 const pluginDirectory = (plugin: string): string =>
   join(configDirectory(process.env), 'plugins', plugin);
+const file = configFile(configDirectory(process.env), () => new Date());
 const webDirectory = fileURLToPath(new URL('../../web/dist', import.meta.url));
 const keyDependencies = {
   askPassphrase: passphraseAsker(terminal.hidden),
@@ -49,7 +54,7 @@ try {
     serveMcp: serveOverStdio,
     source: sourceFactory(connectors, pluginDirectory),
     catalog,
-    configFile: configFile(configDirectory(process.env), () => new Date()),
+    configFile: file,
     secrets: {
       init: key => initVault(configDirectory(process.env), key, keyDependencies),
       open: () => openVault(configDirectory(process.env), keyDependencies),
@@ -65,6 +70,8 @@ try {
             existsSync(ledgerPath()) ? openLedgerReadOnly(ledgerPath()) : null,
           ),
         secretNeeds: () => storeNeeds(config().instances, catalog),
+        plugins: pluginInfos(connectors),
+        configuration: editableConfiguration(config, file, forgetConfig),
         assets: loadAssets(webDirectory),
         log: message => {
           process.stderr.write(`${message}\n`);

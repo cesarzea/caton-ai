@@ -78,3 +78,5 @@ export type StoreStatus = z.infer<typeof storeStatusSchema>;
 export type ConnectionStatus = z.infer<typeof connectionStatusSchema>;
 export type InitStoreRequest = z.infer<typeof initStoreRequestSchema>;
 export type SecretEntry = z.infer<typeof secretEntrySchema>;
+
+export * from './plugins.ts';
