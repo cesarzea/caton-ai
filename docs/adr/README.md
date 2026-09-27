@@ -23,6 +23,7 @@ discussion are marked **Proposed**.
 | [0015](0015-email-alerts-connector.md)                   | Email documents connector                                     | Proposed |
 | [0016](0016-financial-documents-and-reconciliation.md)   | Financial documents and reconciliation in the core            | Proposed |
 | [0017](0017-secret-store.md)                             | Secret store: age encryption, key kept where the user chooses | Accepted |
+| [0018](0018-local-web-interface.md)                      | Local web interface served by `caton serve`                   | Accepted |
 
 ## Writing a new ADR
 

@@ -1,5 +1,6 @@
 import {existsSync, readFileSync} from 'node:fs';
 
+import {SECRET_NAME} from '@caton-ai/api';
 import {generateX25519Identity} from 'age-encryption';
 import * as z from 'zod';
 
@@ -8,7 +9,7 @@ import {ensurePrivateDirectory, writePrivate} from './files.ts';
 import {loadKey, saveKey} from './keys.ts';
 import type {KeyDependencies, KeySource} from './keys.ts';
 import {withLock} from './lock.ts';
-import {SECRET_NAME, descriptorPath, lockPath, readStore, storePath, writeStore} from './store.ts';
+import {descriptorPath, lockPath, readStore, storePath, writeStore} from './store.ts';
 
 /** The decrypted secret store of one process. */
 export interface Vault {

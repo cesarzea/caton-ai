@@ -104,6 +104,14 @@ Create `~/.config/caton-ai/config.json`, readable only by you (`chmod 600`):
 Each connection names the connector plugin that serves it (`type`); secrets are referenced, never
 written in the file. See [ADR 0014](docs/adr/0014-connector-plugin-contract.md).
 
+The web interface runs on this computer only, and is where secrets are entered:
+
+```sh
+npm start -- serve      # prints a one-time link to http://127.0.0.1:7170
+```
+
+See [ADR 0018](docs/adr/0018-local-web-interface.md) for how it is protected.
+
 Secrets go in an encrypted store ([ADR 0017](docs/adr/0017-secret-store.md)) and are referenced as
 `age:<name>`. Its key can be protected by a passphrase, a key file, a container secret or the OS
 credential store:

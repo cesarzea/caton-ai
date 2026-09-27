@@ -1,9 +1,10 @@
 import {join} from 'node:path';
 
+import {MIN_PASSPHRASE_LENGTH} from '@caton-ai/api';
 import {Decrypter, Encrypter} from 'age-encryption';
 
 import type {CredentialStore} from './credential-store.ts';
-import {SecretsError} from './errors.ts';
+import {SecretsError, WrongPassphraseError} from './errors.ts';
 import {readPrivate, writePrivate} from './files.ts';
 
 /**
@@ -25,9 +26,6 @@ export interface KeyDependencies {
    */
   readonly scryptWorkFactor?: number;
 }
-
-/** New passphrases shorter than this are refused, whoever asks for them. */
-export const MIN_PASSPHRASE_LENGTH = 12;
 
 const OS_SERVICE = 'caton-ai';
 const OS_ACCOUNT = 'secret-store-key';
@@ -82,7 +80,7 @@ async function unwrap(directory: string, passphrase: string): Promise<string> {
     if (error instanceof SecretsError) {
       throw error;
     }
-    throw new SecretsError('Wrong passphrase for the secret store');
+    throw new WrongPassphraseError();
   }
 }
 

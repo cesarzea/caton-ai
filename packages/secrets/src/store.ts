@@ -1,12 +1,11 @@
 import {join} from 'node:path';
 
+import {SECRET_NAME} from '@caton-ai/api';
 import {Decrypter, Encrypter, identityToRecipient} from 'age-encryption';
 import * as z from 'zod';
 
 import {SecretsError} from './errors.ts';
 import {readPrivate, writePrivate} from './files.ts';
-
-export const SECRET_NAME = /^[a-z0-9][a-z0-9-]*$/u;
 
 const entriesSchema = z.record(z.string().regex(SECRET_NAME), z.string());
 

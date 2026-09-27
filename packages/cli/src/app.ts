@@ -1,6 +1,7 @@
 import {accountsCommand} from './commands/accounts.ts';
 import {mcpCommand} from './commands/mcp.ts';
 import {secretsCommand} from './commands/secrets.ts';
+import {DEFAULT_PORT, serveCommand} from './commands/serve.ts';
 import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
@@ -16,6 +17,7 @@ const USAGE = [
   '  status           Latest sync of every connection',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
   '  secrets          Manage the encrypted secret store (caton secrets help)',
+  `  serve [port]     Open the web interface on this computer (default port: ${String(DEFAULT_PORT)})`,
 ];
 
 type Command = (context: CommandContext, args: readonly string[]) => number | Promise<number>;
@@ -27,6 +29,7 @@ const COMMANDS = new Map<string, Command>([
   ['status', context => statusCommand(context)],
   ['mcp', context => mcpCommand(context)],
   ['secrets', (context, args) => secretsCommand(context, args)],
+  ['serve', (context, [port]) => serveCommand(context, portArgument(port))],
 ]);
 
 /** Runs one CLI command and returns the process exit code. */
@@ -49,4 +52,9 @@ function usage(context: CommandContext, exitCode: number): number {
 function monthsArgument(value: string | undefined): number {
   const months = Number.parseInt(value ?? '3', 10);
   return Number.isInteger(months) && months > 0 && months <= 120 ? months : 3;
+}
+
+function portArgument(value: string | undefined): number {
+  const port = Number.parseInt(value ?? String(DEFAULT_PORT), 10);
+  return Number.isInteger(port) && port > 0 && port < 65_536 ? port : DEFAULT_PORT;
 }

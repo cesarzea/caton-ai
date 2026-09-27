@@ -84,6 +84,8 @@ flowchart TB
 | `@caton-ai/sync`    | Sync engine: incremental windows, failure recording           | Working |
 | `@caton-ai/mcp`     | Read-only MCP server over the ledger (stdio)                  | Working |
 | `@caton-ai/secrets` | Encrypted secret store (age), key kept where the user chooses | Working |
+| `@caton-ai/api`     | Contract of the local web API, shared by server and interface | Working |
+| `@caton-ai/server`  | `caton serve`: local web API, unlocked secret store           | Working |
 | `@caton-ai/cli`     | `caton` command line: sync, accounts, spend, status, mcp      | Working |
 
 Connector plugins, in `plugins/` ([ADR 0014](../adr/0014-connector-plugin-contract.md)):
