@@ -1,4 +1,4 @@
-import {chmodSync} from 'node:fs';
+import {chmodSync, existsSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 
 import {MIGRATIONS} from './migrations.ts';
@@ -20,8 +20,39 @@ export function openDatabase(path: string): DatabaseSync {
   return database;
 }
 
+/** The ledger cannot be read: it does not exist yet, or its schema is not the expected one. */
+export class LedgerUnavailableError extends Error {
+  override readonly name = 'LedgerUnavailableError';
+}
+
+/**
+ * Opens an existing ledger for reading only: it is never created or migrated, and SQLite refuses
+ * any write on the connection.
+ */
+export function openDatabaseReadOnly(path: string): DatabaseSync {
+  if (!existsSync(path)) {
+    throw new LedgerUnavailableError('The ledger does not exist yet: run `caton sync` first');
+  }
+  const database = new DatabaseSync(path, {readOnly: true});
+  database.exec('PRAGMA query_only = ON');
+  const version = schemaVersion(database);
+  if (version !== MIGRATIONS.length) {
+    database.close();
+    throw new LedgerUnavailableError(
+      version < MIGRATIONS.length
+        ? 'The ledger uses an older schema: run `caton sync` to upgrade it'
+        : 'The ledger was written by a newer version of Catón AI: upgrade it',
+    );
+  }
+  return database;
+}
+
+function schemaVersion(database: DatabaseSync): number {
+  return Number(database.prepare('PRAGMA user_version').get()?.['user_version'] ?? 0);
+}
+
 function migrate(database: DatabaseSync): void {
-  const current = Number(database.prepare('PRAGMA user_version').get()?.['user_version'] ?? 0);
+  const current = schemaVersion(database);
   MIGRATIONS.slice(current).forEach((migration, index) => {
     inTransaction(database, () => {
       database.exec(migration);

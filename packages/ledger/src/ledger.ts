@@ -1,17 +1,20 @@
+import type {DatabaseSync} from 'node:sqlite';
+
 import type {Account, Balance, Transaction} from '@caton-ai/core';
 
-import {openDatabase} from './database.ts';
+import {openDatabase, openDatabaseReadOnly} from './database.ts';
+import {searchTransactions} from './query.ts';
+import type {TransactionPage, TransactionQuery} from './query.ts';
 import {readAccounts, readLastRun, readLatestBalances, readTransactions} from './read.ts';
 import type {SyncRun} from './read.ts';
 import {saveFailure, saveSnapshot} from './write.ts';
 import type {SyncFailure, SyncSnapshot} from './write.ts';
 
-/** The local ledger: the single store of every account, movement and balance. */
-export interface Ledger {
-  saveSync(snapshot: SyncSnapshot): void;
-  recordFailure(failure: SyncFailure): void;
+/** Everything that can be read from the ledger. */
+export interface LedgerReader {
   accounts(): Account[];
   transactions(fromDate: string): Transaction[];
+  searchTransactions(query: TransactionQuery): TransactionPage;
   latestBalances(): Balance[];
   /** Latest run of a source, successful or not: what decides whether totals are trustworthy. */
   lastRun(source: string): SyncRun | null;
@@ -19,18 +22,36 @@ export interface Ledger {
   close(): void;
 }
 
+/** The local ledger: the single store of every account, movement and balance. */
+export interface Ledger extends LedgerReader {
+  saveSync(snapshot: SyncSnapshot): void;
+  recordFailure(failure: SyncFailure): void;
+}
+
 /** Opens (creating and migrating if needed) the ledger at `path`; `:memory:` for tests. */
 export function openLedger(path: string): Ledger {
   const database = openDatabase(path);
   return {
+    ...readerOver(database),
     saveSync: snapshot => {
       saveSnapshot(database, snapshot);
     },
     recordFailure: failure => {
       saveFailure(database, failure);
     },
+  };
+}
+
+/** Opens an existing ledger that can only be read, never created, migrated or written. */
+export function openLedgerReadOnly(path: string): LedgerReader {
+  return readerOver(openDatabaseReadOnly(path));
+}
+
+function readerOver(database: DatabaseSync): LedgerReader {
+  return {
     accounts: () => readAccounts(database),
     transactions: fromDate => readTransactions(database, fromDate),
+    searchTransactions: query => searchTransactions(database, query),
     latestBalances: () => readLatestBalances(database),
     lastRun: source => readLastRun(database, source, false),
     lastSuccessfulRun: source => readLastRun(database, source, true),
