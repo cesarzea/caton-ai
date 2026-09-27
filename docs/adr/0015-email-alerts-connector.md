@@ -1,5 +1,9 @@
 # 0015 — Email documents connector
 
+> Partly superseded by [ADR 0020](0020-generic-email-connector-that-learns.md): the connector reads
+> any sender with a language model and learns from the user's answers; recipes are no longer
+> configured by hand.
+
 - Status: Proposed
 - Date: 2026-09-27
 
