@@ -25,6 +25,7 @@ discussion are marked **Proposed**.
 | [0017](0017-secret-store.md)                                  | Secret store: age encryption, key kept where the user chooses | Accepted |
 | [0018](0018-local-web-interface.md)                           | Local web interface served by `caton serve`                   | Accepted |
 | [0019](0019-plugin-variables-instances-and-shared-secrets.md) | Plugin variables, instances and shared secrets                | Accepted |
+| [0020](0020-generic-email-connector-that-learns.md)           | A generic email connector that learns                         | Accepted |
 
 ## Writing a new ADR
 
