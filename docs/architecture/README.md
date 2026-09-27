@@ -59,30 +59,23 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  subgraph clients[Clients — no business logic]
-    web[Web UI shell]
-    widget[macOS widget]
-    mcp[MCP server]
-    cli[CLI]
-  end
-  subgraph core[Core]
-    ledger[Ledger<br/>SQLite]
-    sync[Sync engine]
-    sched[Scheduler and event bus]
-    host[Plugin host<br/>isolation + permissions]
-    agents[Agent runtime<br/>configurable LLM]
-    notify[Notifications and alerts]
-    domain[Domain services<br/>FX, categories, accounting views]
-    sec[Security<br/>secrets vault, audit log, plugin review]
-  end
-  subgraph plugins[Plugins — isolated processes]
-    sources[Sources: banks, provider APIs]
-    features[Budgets, goals, forecasts]
-    watchdog[Watchdog agents]
-  end
-  clients --> core
-  host <-- JSON-RPC capability SDK --> plugins
+  clients["<b>Clients</b> — no business logic<br/>Web UI · macOS widget · MCP server · CLI"]
+  core["<b>Core</b><br/>Ledger · Sync engine · Scheduler and event bus · Domain services<br/>Plugin host · Agent runtime · Notifications · Security"]
+  plugins["<b>Plugins</b> — isolated processes<br/>Sources · Budgets, goals, forecasts · Watchdog agents"]
+  clients -- local API --> core
+  core <-- JSON-RPC capability SDK --> plugins
 ```
+
+| Core component           | Responsibility                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| Ledger                   | SQLite store of transactions, usage, balances, exchange rates and plugin data  |
+| Sync engine              | Runs source plugins incrementally, deduplicates, respects provider rate limits |
+| Scheduler and event bus  | Timed jobs and events such as `transaction.created` that plugins subscribe to  |
+| Domain services          | Currency conversion, categorisation, accrual / cash / mixed accounting views   |
+| Plugin host              | Installs, reviews, isolates and grants capabilities to plugins                 |
+| Agent runtime            | Runs agentic plugins with the configured LLM and only their permitted tools    |
+| Notifications and alerts | Alert rules and delivery channels                                              |
+| Security                 | Secrets vault, audit log, plugin review pipeline                               |
 
 | Package          | Responsibility                                          | Status   |
 | ---------------- | ------------------------------------------------------- | -------- |
