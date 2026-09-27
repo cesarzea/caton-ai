@@ -9,7 +9,7 @@ export async function syncCommand(context: CommandContext): Promise<number> {
   for (const connection of context.config().connections) {
     const outcome = await syncConnection({
       name: connection.name,
-      source: context.source(connection),
+      source: () => context.source(connection),
       ledger,
       now: context.now,
     });

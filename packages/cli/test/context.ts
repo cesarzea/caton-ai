@@ -61,8 +61,8 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
   const served: ServerContext[] = [];
   return {
     config: () => ({
-      enableBanking: {appId: 'app', privateKeyPath: '~/key.pem'},
-      connections: Object.keys(sources).map(name => ({name, sessionId: `session-${name}`})),
+      plugins: {},
+      connections: Object.keys(sources).map(name => ({name, type: 'fake'})),
     }),
     ledger: () => ledger,
     readOnlyLedger: () => ledger,

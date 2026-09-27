@@ -6,7 +6,11 @@ import {syncFromDate} from './window.ts';
 export interface SyncRequest {
   /** Name of the configured connection, e.g. "millennium". */
   readonly name: string;
-  readonly source: TransactionSource;
+  /**
+   * Builds the source. It is called inside the sync, so that a misconfigured connection is
+   * recorded as a failure like any other and the remaining connections still sync.
+   */
+  readonly source: () => TransactionSource;
   readonly ledger: Ledger;
   readonly now?: () => Date;
 }
@@ -29,7 +33,7 @@ export async function syncConnection(request: SyncRequest): Promise<SyncOutcome>
   const startedAt = now();
   const fromDate = syncFromDate(request.ledger.lastSuccessfulRun(request.name), startedAt);
   try {
-    const accounts = await readAccounts(request.source, fromDate);
+    const accounts = await readAccounts(request.source(), fromDate);
     request.ledger.saveSync({source: request.name, startedAt, finishedAt: now(), accounts});
     const transactions = accounts.reduce((sum, item) => sum + item.transactions.length, 0);
     return {name: request.name, ok: true, accounts: accounts.length, transactions};

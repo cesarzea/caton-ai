@@ -21,13 +21,17 @@ beforeAll(async () => {
   writeFileSync(
     configPath,
     JSON.stringify({
-      enableBanking: {appId: 'app', privateKeyPath: '~/key.pem'},
-      connections: [{name: 'millennium', sessionId: 'session-millennium'}],
+      connections: [{name: 'millennium', type: 'enable-banking', sessionId: 'session-millennium'}],
     }),
   );
   chmodSync(configPath, 0o600);
   const ledger = openLedger(join(directory, 'ledger.sqlite'));
-  await syncConnection({name: 'millennium', source: workingSource, ledger, now: () => new Date()});
+  await syncConnection({
+    name: 'millennium',
+    source: () => workingSource,
+    ledger,
+    now: () => new Date(),
+  });
   ledger.close();
 });
 

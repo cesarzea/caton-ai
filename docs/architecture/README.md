@@ -77,14 +77,19 @@ flowchart TB
 | Notifications and alerts | Alert rules and delivery channels                                              |
 | Security                 | Secrets vault, audit log, plugin review pipeline                               |
 
-| Package                    | Responsibility                                               | Status  |
-| -------------------------- | ------------------------------------------------------------ | ------- |
-| `@caton-ai/core`           | Domain model: money, accounts, transactions, the source port | Working |
-| `@caton-ai/enable-banking` | Enable Banking (PSD2) source for European banks              | Working |
-| `@caton-ai/ledger`         | Local SQLite ledger                                          | Working |
-| `@caton-ai/sync`           | Sync engine: incremental windows, failure recording          | Working |
-| `@caton-ai/mcp`            | Read-only MCP server over the ledger (stdio)                 | Working |
-| `@caton-ai/cli`            | `caton` command line: sync, accounts, spend, status, mcp     | Working |
+| Package            | Responsibility                                               | Status  |
+| ------------------ | ------------------------------------------------------------ | ------- |
+| `@caton-ai/core`   | Domain model: money, accounts, transactions, the source port | Working |
+| `@caton-ai/ledger` | Local SQLite ledger                                          | Working |
+| `@caton-ai/sync`   | Sync engine: incremental windows, failure recording          | Working |
+| `@caton-ai/mcp`    | Read-only MCP server over the ledger (stdio)                 | Working |
+| `@caton-ai/cli`    | `caton` command line: sync, accounts, spend, status, mcp     | Working |
+
+Connector plugins, in `plugins/` ([ADR 0014](../adr/0014-connector-plugin-contract.md)):
+
+| Plugin                     | Responsibility                                       | Status  |
+| -------------------------- | ---------------------------------------------------- | ------- |
+| `@caton-ai/enable-banking` | European bank accounts through Enable Banking (PSD2) | Working |
 
 ## 6. Runtime view — daily sync and watchdog (proposed)
 
