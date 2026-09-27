@@ -41,27 +41,46 @@ Enforced standards run through `npm run check` locally and in CI on every pull r
 cannot change unless they all pass. Each gate was verified to fail on a deliberate violation when
 it was introduced.
 
-| Area              | Standard                                                                                                                                                        | Status   |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| Types             | TypeScript [`@tsconfig/strictest`](https://github.com/tsconfig/bases); `any` forbidden                                                                          | Enforced |
-| Lint              | [typescript-eslint](https://typescript-eslint.io) `strict-type-checked` + `stylistic-type-checked`, SonarJS cognitive complexity                                | Enforced |
-| Code size         | Files ≤ 150 lines, functions ≤ 30 lines, cyclomatic complexity ≤ 8, named exports only                                                                          | Enforced |
-| Style             | [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html) conventions; Prettier formatting                                              | Enforced |
-| Architecture      | [dependency-cruiser](https://github.com/sverweij/dependency-cruiser): public entry points only, no cycles, no undeclared or dev dependencies in production code | Enforced |
-| Dead code         | [knip](https://knip.dev): no unused files, exports or dependencies                                                                                              | Enforced |
-| Tests             | [Vitest](https://vitest.dev) with ≥ 90 % coverage                                                                                                               | Enforced |
-| Static analysis   | [CodeQL](https://codeql.github.com) `security-and-quality` on every pull request                                                                                | Enforced |
-| Supply chain      | [OpenSSF Scorecard](https://scorecard.dev), Dependabot, actions pinned by commit SHA, least-privilege workflow tokens                                           | Enforced |
-| Secrets           | Secret scanning with push protection; private vulnerability reporting                                                                                           | Enforced |
-| Branch policy     | Pull requests only, required checks (Node.js 24 and 26, CodeQL, PR title), linear history, squash merges                                                        | Enforced |
-| Commits           | [Conventional Commits](https://www.conventionalcommits.org)                                                                                                     | Enforced |
-| Code review       | [Google engineering practices](https://google.github.io/eng-practices/review/) and a definition of done ([CONTRIBUTING](CONTRIBUTING.md))                       | Adopted  |
-| Architecture docs | [arc42](https://arc42.org), [C4](https://c4model.com) and [MADR](https://adr.github.io/madr/) decision records                                                  | Adopted  |
-| AI security       | [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/) mapping and threat model                                                          | Planned  |
-| Best practices    | [OpenSSF Best Practices](https://www.bestpractices.dev) badge                                                                                                   | Planned  |
-| Releases          | Signed releases with SLSA provenance and SBOM                                                                                                                   | Planned  |
-| Test quality      | Mutation testing of the accounting domain                                                                                                                       | Planned  |
-| App security      | [OWASP ASVS 5.0](https://owasp.org/www-project-application-security-verification-standard/) level 2, before offering to businesses                              | Planned  |
+**Architecture and code**
+
+| Standard                                                                                                                                                                                             | Status   |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Architecture documented with [arc42](https://arc42.org) and [C4](https://c4model.com); decisions recorded as [MADR](https://adr.github.io/madr/) [architecture decision records](docs/adr/README.md) | Adopted  |
+| Module boundaries checked by [dependency-cruiser](https://github.com/sverweij/dependency-cruiser): public entry points only, no cycles, no undeclared or development dependencies in production code | Enforced |
+| TypeScript [`@tsconfig/strictest`](https://github.com/tsconfig/bases); `any` forbidden                                                                                                               | Enforced |
+| [typescript-eslint](https://typescript-eslint.io) `strict-type-checked` + `stylistic-type-checked`, SonarJS cognitive complexity                                                                     | Enforced |
+| Tests with [Vitest](https://vitest.dev) and ≥ 90 % coverage                                                                                                                                          | Enforced |
+| Small units: files ≤ 150 lines, functions ≤ 30 lines, cyclomatic complexity ≤ 8                                                                                                                      | Enforced |
+| Dead-code detection with [knip](https://knip.dev): no unused files, exports or dependencies                                                                                                          | Enforced |
+| [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html) conventions (named exports only); Prettier formatting                                                              | Enforced |
+
+**Security and supply chain**
+
+| Standard                                                                                  | Status   |
+| ----------------------------------------------------------------------------------------- | -------- |
+| [OpenSSF Scorecard](https://scorecard.dev) published on every change to `main`            | Enforced |
+| [CodeQL](https://codeql.github.com) `security-and-quality` analysis on every pull request | Enforced |
+| GitHub Actions pinned by commit SHA, least-privilege workflow tokens                      | Enforced |
+| Secret scanning with push protection; private vulnerability reporting                     | Enforced |
+| Automated dependency updates with Dependabot                                              | Enforced |
+
+**Process**
+
+| Standard                                                                                                                                                             | Status   |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| Protected `main`: pull requests only, required checks (Node.js 24 and 26, CodeQL, PR title), linear history, squash merges                                           | Enforced |
+| Code review following [Google's engineering practices](https://google.github.io/eng-practices/review/), with a definition of done in [CONTRIBUTING](CONTRIBUTING.md) | Adopted  |
+| [Conventional Commits](https://www.conventionalcommits.org) for every commit on `main`                                                                               | Enforced |
+
+**Planned**
+
+| Standard                                                                                                                                       | Status  |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| [OWASP Top 10 for LLM Applications 2025](https://genai.owasp.org/llm-top-10/) mapping and threat model                                         | Planned |
+| [OpenSSF Best Practices](https://www.bestpractices.dev) badge                                                                                  | Planned |
+| Signed releases with SLSA provenance and SBOM                                                                                                  | Planned |
+| [OWASP ASVS 5.0](https://owasp.org/www-project-application-security-verification-standard/) level 2, before offering the product to businesses | Planned |
+| Mutation testing of the accounting domain                                                                                                      | Planned |
 
 ## Development
 
