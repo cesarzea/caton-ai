@@ -1,0 +1,17 @@
+{
+  "name": "@caton-ai/ledger",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Catón AI local ledger on SQLite.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@caton-ai/core": "0.0.0"
+  }
+}
