@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@caton-ai/core": "0.0.0",
+    "@caton-ai/email-alerts": "0.0.0",
     "@caton-ai/enable-banking": "0.0.0",
     "@caton-ai/ledger": "0.0.0",
     "@caton-ai/mcp": "0.0.0",
