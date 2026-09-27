@@ -56,9 +56,26 @@ describe('adding a connection with a shared secret', () => {
     );
 
     expect(screen.getByText('Uses the shared secret work-imap')).toBeDefined();
+    expect(document.getElementById('secret-imap-password')).toBeNull();
     await user.click(screen.getByRole('button', {name: 'Save'}));
     expect(await screen.findByRole('button', {name: 'Add a connection'})).toBeDefined();
     expect(api.stored.get('email-alerts:receipts:imap-password')).toBe('${work-imap}');
+  });
+});
+
+describe('choosing between a shared secret and its own value', () => {
+  it('hides the value while a shared secret is chosen, and shows it again for its own value', async () => {
+    const api = unlocked();
+    api.stored.set('work-imap', 'pw');
+    const {user} = openApp(api);
+    await user.click(await screen.findByRole('button', {name: 'Add a connection'}));
+    const picker = screen.getByRole('combobox', {name: 'Or use a shared secret'});
+
+    expect(document.getElementById('secret-imap-password')).not.toBeNull();
+    await user.selectOptions(picker, 'work-imap');
+    expect(document.getElementById('secret-imap-password')).toBeNull();
+    await user.selectOptions(picker, 'No, its own value');
+    expect(document.getElementById('secret-imap-password')).not.toBeNull();
   });
 });
 

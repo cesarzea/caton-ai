@@ -134,6 +134,7 @@ describe('secrets of a connection', () => {
     expect(screen.queryByText(/^Needs:/u)).toBeNull();
     await user.click(screen.getByRole('button', {name: 'Edit Amex'}));
     expect(screen.getByText('Uses the shared secret work-imap')).toBeDefined();
+    expect(document.getElementById('secret-imap-password')).toBeNull();
     expect(
       screen.getByRole<HTMLSelectElement>('combobox', {name: 'Or use a shared secret'}).value,
     ).toBe('work-imap');

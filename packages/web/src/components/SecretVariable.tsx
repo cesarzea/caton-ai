@@ -1,5 +1,6 @@
 import {MACRO} from '@caton-ai/api';
 import type {SecretEntry, VariableSpecInfo} from '@caton-ai/api';
+import {useState} from 'react';
 import type {ReactNode} from 'react';
 
 import {text} from '../text.ts';
@@ -36,23 +37,22 @@ function State({
 type PickerProps = Readonly<{
   shared: readonly string[];
   current: string;
-  onChange: (value: string) => void;
+  /** A shared secret's name, or '' for the connection's own value. */
+  onPick: (name: string) => void;
 }>;
 
-/** Chooses a shared secret, showing the one in use or the one just chosen. */
-function SharedPicker({shared, current, onChange}: PickerProps): ReactNode {
+/** Chooses a shared secret or the connection's own value, showing the current choice. */
+function SharedPicker({shared, current, onPick}: PickerProps): ReactNode {
   return (
     <label className="shared-picker">
       {text.configuration.useShared}
       <select
         value={shared.includes(current) ? current : ''}
         onChange={event => {
-          if (event.target.value !== '') {
-            onChange(`\${${event.target.value}}`);
-          }
+          onPick(event.target.value);
         }}
       >
-        <option value="">{text.configuration.noShared}</option>
+        <option value="">{text.configuration.ownValue}</option>
         {shared.map(name => (
           <option key={name} value={name}>
             {name}
@@ -76,9 +76,9 @@ function Pending({value}: Readonly<{value: string}>): ReactNode {
   );
 }
 
-/** The shared secret shown as chosen: the one just picked, else the one saved. */
-function chosenShared(value: string, entry: SecretEntry | undefined): string {
-  if (value !== '') {
+/** The shared secret in use: the one just picked, else the saved one unless its own value was chosen. */
+function chosenShared(value: string, entry: SecretEntry | undefined, ownChosen: boolean): string {
+  if (value !== '' || ownChosen) {
     return MACRO.exec(value)?.[1] ?? '';
   }
   return entry?.macro ?? '';
@@ -103,22 +103,47 @@ function SecretInput({id, value, onChange}: InputProps): ReactNode {
   );
 }
 
-/** A secret variable: typed, loaded from a file, or pointed at a shared secret; never shown. */
+type ValueProps = Readonly<{
+  spec: VariableSpecInfo;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+}>;
+
+/** Its own value: typed, or loaded whole from a file. */
+function OwnValue({spec, id, value, onChange}: ValueProps): ReactNode {
+  return (
+    <>
+      <SecretInput id={id} value={value} onChange={onChange} />
+      {spec.kind === 'secret-file' ? (
+        <FileLoader label={text.configuration.loadFile} onLoad={onChange} />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A secret variable: its own value, typed or loaded from a file, or a shared secret; never
+ * shown. While a shared secret is chosen, there is no value to type.
+ */
 export function SecretVariable({spec, entry, shared, value, onChange}: Props): ReactNode {
   const id = `secret-${spec.key}`;
+  const [ownChosen, setOwnChosen] = useState(false);
+  const current = chosenShared(value, entry, ownChosen);
+  const pick = (name: string): void => {
+    setOwnChosen(name === '');
+    onChange(name === '' ? '' : `\${${name}}`);
+  };
   return (
     <div className="field variable">
-      <label htmlFor={id}>
+      <label htmlFor={current === '' ? id : undefined}>
         {spec.label} <State entry={entry} shared={shared} />
       </label>
       <div className="secret-inputs">
-        <SecretInput id={id} value={value} onChange={onChange} />
-        {spec.kind === 'secret-file' ? (
-          <FileLoader label={text.configuration.loadFile} onLoad={onChange} />
-        ) : null}
         {shared.length === 0 ? null : (
-          <SharedPicker shared={shared} current={chosenShared(value, entry)} onChange={onChange} />
+          <SharedPicker shared={shared} current={current} onPick={pick} />
         )}
+        {current === '' ? <OwnValue spec={spec} id={id} value={value} onChange={onChange} /> : null}
       </div>
       <Pending value={value} />
       <Help id={`${id}-help`} text={spec.help} />

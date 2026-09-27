@@ -49,6 +49,7 @@ export const text = {
     secretReady: 'A new value will be saved.',
     useShared: 'Or use a shared secret',
     noShared: 'Choose…',
+    ownValue: 'No, its own value',
     listHint: 'Separate values with commas.',
     needs: (labels: readonly string[]) => `Needs: ${labels.join(', ')}`,
     loadFile: 'Load from a file',
