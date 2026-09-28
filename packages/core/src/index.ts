@@ -31,6 +31,6 @@ export {addMoney, currencyCode, currencyDigits, formatMoney, money, negateMoney}
 export type {CurrencyCode, Money} from './money.ts';
 export {firstDayOfLastMonths} from './period.ts';
 export type {TransactionSource} from './source.ts';
-export {monthlyOutflows} from './spend.ts';
-export type {MonthlyTotal} from './spend.ts';
+export {monthlySpend} from './spend.ts';
+export type {LinkedDocument, MonthlySpend, MonthlyTotal} from './spend.ts';
 export type {Transaction, TransactionStatus} from './transaction.ts';

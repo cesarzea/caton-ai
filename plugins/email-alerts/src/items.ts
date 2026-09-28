@@ -47,6 +47,12 @@ export interface ItemContext {
   readonly senderDomain: string;
 }
 
+/** Whether amount, date and issuer are written in the email as the model copied them. */
+function isGrounded(extracted: Extracted, {text, senderDomain}: ItemContext): boolean {
+  const issuer = written(extracted.issuer, text) || written(extracted.issuer, senderDomain);
+  return written(extracted.amount_written, text) && written(extracted.date_written, text) && issuer;
+}
+
 /**
  * The document an email is, verified only when amount, issuer and date are all written in it as
  * the model copied them. The card or account is kept only when written as copied.
@@ -57,10 +63,7 @@ export function documentOf(extracted: Extracted, context: ItemContext): Financia
     return null;
   }
   const amount = amountOf(extracted, text);
-  const grounded =
-    written(extracted.amount_written, text) &&
-    written(extracted.date_written, text) &&
-    (written(extracted.issuer, text) || written(extracted.issuer, context.senderDomain));
+  const grounded = isGrounded(extracted, context);
   return {
     id: `email:${message.messageId}`,
     kind: extracted.kind,

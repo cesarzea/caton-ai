@@ -19,7 +19,7 @@ export interface SearchQuery {
 }
 
 /** What to look for: money words, and optionally only some senders (every sender when empty). */
-export interface MailFilter {
+interface MailFilter {
   readonly words: readonly string[];
   readonly senders: readonly string[];
 }

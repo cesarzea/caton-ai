@@ -13,7 +13,8 @@ interface FakeSession extends ImapSession {
 function describeSearch({since, afterUid, words, from}: SearchQuery): string {
   const start =
     since === undefined ? `after ${String(afterUid)}` : since.toISOString().slice(0, 10);
-  return `search ${start} ${words.join('|')}${from === undefined ? '' : ` from ${from}`}`;
+  const sender = from === undefined ? '' : ` from ${from}`;
+  return `search ${start} ${words.join('|')}${sender}`;
 }
 
 const raw = (uid: number) => ({

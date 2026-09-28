@@ -133,3 +133,31 @@ describe('documents from email', () => {
     ]);
   });
 });
+
+describe('answers the email does not support', () => {
+  it('reads a currency written apart from the amount, and refuses impossible amounts', async () => {
+    const coded = {...CHARGE, amount_written: '1.234,56', currency: 'EUR'};
+    const yen = {...CHARGE, amount_written: '1.234,56', currency: 'JPY'};
+    const mailbox = fakeMailbox([
+      message({text: `${message().text ?? ''}Moneda: EUR`}),
+      message({messageId: '<2@x>', text: `${message().text ?? ''}Moneda: JPY`}),
+    ]);
+    const documents =
+      (await source({mailbox, model: fakeModel([coded, yen])}).listDocuments?.('')) ?? [];
+
+    expect(documents.map(document => document.amount)).toEqual([
+      {minorUnits: 123_456, currency: 'EUR'},
+      null,
+    ]);
+  });
+
+  it('fails an answer outside the requested format', async () => {
+    const error: unknown = await source({model: fakeModel([{kind: 'invoice'}])})
+      .listDocuments?.('')
+      .catch((caught: unknown) => caught);
+
+    expect((error as Error).message).toBe(
+      'the model could not read an email from alerts.example-card.com: the model answered outside the requested format',
+    );
+  });
+});

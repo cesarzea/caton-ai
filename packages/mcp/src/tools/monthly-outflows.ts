@@ -1,4 +1,5 @@
-import {firstDayOfLastMonths, monthlyOutflows} from '@caton-ai/core';
+import {firstDayOfLastMonths, moneyToDecimal, monthlySpend} from '@caton-ai/core';
+import type {LedgerReader} from '@caton-ai/ledger';
 import type {McpServer} from '@modelcontextprotocol/server';
 import * as z from 'zod';
 
@@ -13,9 +14,28 @@ const INPUT = z.object({
 });
 
 const OUTPUT = z.object({
-  months: z.array(AMOUNT.extend({month: z.string().describe('YYYY-MM')})),
+  months: z.array(
+    AMOUNT.extend({
+      month: z.string().describe('YYYY-MM'),
+      onlyInDocuments: z
+        .string()
+        .describe(
+          'The part of the amount that only documents report, such as card charges read from email',
+        ),
+    }),
+  ),
   freshness: FRESHNESS,
 });
+
+function spendOf(ledger: LedgerReader, from: string) {
+  return monthlySpend(ledger.transactions(from), ledger.documents(from)).map(
+    ({month, total, onlyInDocuments}) => ({
+      month,
+      ...amountOf(total),
+      onlyInDocuments: moneyToDecimal(onlyInDocuments),
+    }),
+  );
+}
 
 export function registerMonthlyOutflows(server: McpServer, context: ServerContext): void {
   server.registerTool(
@@ -23,9 +43,10 @@ export function registerMonthlyOutflows(server: McpServer, context: ServerContex
     {
       title: 'Monthly outflows',
       description:
-        'Money that left the accounts per calendar month and currency (cash basis, booked ' +
-        'movements), as positive amounts. It includes transfers between the user’s own ' +
-        'accounts and card repayments, so it is an upper bound of spending, not spending itself.',
+        'Spending per calendar month and currency (cash basis), as positive amounts: booked ' +
+        'outflows, except payments matched to the card statement they settle, plus verified card ' +
+        'charges that only documents such as email alerts report. Transfers between the user’s ' +
+        'own accounts are still included, so it is an upper bound of spending.',
       inputSchema: INPUT,
       outputSchema: OUTPUT,
       annotations: READ_ONLY,
@@ -33,9 +54,7 @@ export function registerMonthlyOutflows(server: McpServer, context: ServerContex
     ({months}) =>
       structured(
         withLedger(context, ledger => ({
-          months: monthlyOutflows(
-            ledger.transactions(firstDayOfLastMonths(context.now(), months)),
-          ).map(({month, total}) => ({month, ...amountOf(total)})),
+          months: spendOf(ledger, firstDayOfLastMonths(context.now(), months)),
           freshness: freshnessOf(ledger, context.connections),
         })),
       ),

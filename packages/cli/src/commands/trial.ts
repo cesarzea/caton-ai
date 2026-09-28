@@ -10,7 +10,7 @@ import {stagedState} from '../state.ts';
 import {agreement, trialRow} from './trial-report.ts';
 import type {TrialResult} from './trial-report.ts';
 
-export const TRIAL_USAGE = 'Usage: caton trial <connection> <model> <model>… [--emails N]';
+const TRIAL_USAGE = 'Usage: caton trial <connection> <model> <model>… [--emails N]';
 
 async function documentsOf(
   read: () => Promise<readonly FinancialDocument[]>,

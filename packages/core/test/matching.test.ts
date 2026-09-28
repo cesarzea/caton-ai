@@ -58,3 +58,23 @@ describe('matching documents', () => {
     expect(matchDocuments([receipt({amount: money(999, 'USD')})], twins)).toEqual([]);
   });
 });
+
+describe('matching statements', () => {
+  it('links a statement to the one payment of its total by its due date', () => {
+    const statement = receipt({
+      id: 'statement',
+      kind: 'statement',
+      amount: money(45_572, 'EUR'),
+      issuedOn: '2026-08-20',
+      dueOn: '2026-09-01',
+    });
+    const payments = [charge('late', -45_572, '2026-10-20'), charge('paid', -45_572, '2026-09-01')];
+
+    expect(matchDocuments([statement], payments)).toEqual([
+      {documentId: 'statement', transactionId: 'paid'},
+    ]);
+    expect(
+      matchDocuments([{...statement, dueOn: null}], [charge('paid', -45_572, '2026-09-20')]),
+    ).toEqual([{documentId: 'statement', transactionId: 'paid'}]);
+  });
+});

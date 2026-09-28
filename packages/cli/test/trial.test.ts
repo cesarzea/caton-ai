@@ -94,3 +94,20 @@ describe('caton trial', () => {
     );
   });
 });
+
+describe('caton trial with unknown prices', () => {
+  it('says how many calls have no known price, and shows a missing amount', async () => {
+    const base = trialContext();
+    const prices = base.prices();
+    const unknown = {costNanoUsd: null, costSource: 'unknown', pricesDate: null} as const;
+    const noAmount: SourceFor = (instance, lookup, hooks) => ({
+      ...byModel(instance, lookup, hooks),
+      listDocuments: () => Promise.resolve([{...doc('a', 1), amount: null}]),
+    });
+    const context = {...base, source: noAmount, prices: () => ({...prices, price: () => unknown})};
+
+    expect(await run(['trial', 'mail', 'cheap', 'good'], context)).toBe(0);
+    expect(context.lines[1]).toMatch(/\$0\.0000 \+ 1 unpriced/u);
+    expect(context.lines).toContain('Same reading by every model: 1 of 1 document(s)');
+  });
+});
