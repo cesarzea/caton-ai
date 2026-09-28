@@ -2,6 +2,7 @@ import {McpServer} from '@modelcontextprotocol/server';
 
 import type {ServerContext} from './context.ts';
 import {registerListAccounts} from './tools/list-accounts.ts';
+import {registerListDocuments} from './tools/list-documents.ts';
 import {registerListTransactions} from './tools/list-transactions.ts';
 import {registerMonthlyOutflows} from './tools/monthly-outflows.ts';
 import {registerSyncStatus} from './tools/sync-status.ts';
@@ -24,5 +25,6 @@ export function createCatonServer(context: ServerContext): McpServer {
   registerListTransactions(server, context);
   registerMonthlyOutflows(server, context);
   registerTopCounterparties(server, context);
+  registerListDocuments(server, context);
   return server;
 }

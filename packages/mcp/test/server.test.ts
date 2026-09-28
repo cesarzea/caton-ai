@@ -9,6 +9,7 @@ const TOOLS = [
   'list_transactions',
   'monthly_outflows',
   'top_counterparties',
+  'list_documents',
 ];
 
 describe.each([
