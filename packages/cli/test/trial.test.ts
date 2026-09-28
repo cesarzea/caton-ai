@@ -45,9 +45,25 @@ const byModel: SourceFor = (instance, _lookup, hooks) => {
   };
 };
 
+/** A context whose configuration also holds the models the trials use. */
+function trialContext(): ReturnType<typeof testContext> {
+  const base = testContext({mail: workingSource});
+  const models = ['cheap', 'good', 'broken', 'gone'].map(id => ({
+    id,
+    title: id,
+    plugin: 'model-fake',
+    settings: {},
+  }));
+  return {
+    ...base,
+    source: byModel,
+    config: () => ({instances: [...base.config().instances, ...models]}),
+  };
+}
+
 describe('caton trial', () => {
   it('reads the same emails with each model and shows where they differ', async () => {
-    const context = {...testContext({mail: workingSource}), source: byModel};
+    const context = trialContext();
 
     expect(await run(['trial', 'mail', 'cheap', 'good', '--emails', '5'], context)).toBe(0);
     expect(context.lines[0]).toMatch(
@@ -61,14 +77,18 @@ describe('caton trial', () => {
   });
 
   it('reports models that fail, and refuses incomplete arguments', async () => {
-    const context = {...testContext({mail: workingSource}), source: byModel};
+    const context = trialContext();
 
     expect(await run(['trial', 'mail', 'broken', 'gone'], context)).toBe(1);
     expect(context.lines.some(line => line.includes('rate limited'))).toBe(true);
     expect(context.lines.some(line => line.includes('offline'))).toBe(true);
     expect(await run(['trial', 'mail'], context)).toBe(2);
     expect(await run(['trial', 'nobody', 'cheap'], context)).toBe(2);
+    expect(await run(['trial', 'mail', 'cheap', 'luna'], context)).toBe(2);
     expect(context.errors.at(-1)).toBe(
+      'Unknown model(s): luna. Configured models: cheap, good, broken, gone; add them under Language models in caton serve.',
+    );
+    expect(context.errors).toContain(
       'Usage: caton trial <connection> <model> <model>… [--emails N]',
     );
   });

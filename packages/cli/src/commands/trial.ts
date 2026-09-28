@@ -3,6 +3,7 @@ import type {FinancialDocument} from '@caton-ai/core';
 
 import type {CommandContext} from '../context.ts';
 import {callRecord} from '../model-calls.ts';
+import type {OnModelCall} from '../model-calls.ts';
 import {table} from '../output.ts';
 import {storeLookup} from '../secrets.ts';
 import {stagedState} from '../state.ts';
@@ -25,46 +26,81 @@ async function documentsOf(
 }
 
 type Trial = Readonly<{context: CommandContext; connection: string; emails: number}>;
-
-async function tryModel({context, connection, emails}: Trial, model: string): Promise<TrialResult> {
-  const instance = context.config().instances.find(candidate => candidate.id === connection);
-  const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
-  const ledger = context.ledger();
-  const prices = context.prices();
-  const result = {model, calls: 0, costNanoUsd: 0, unpriced: 0};
-  const settings = {...instance?.settings, 'max-per-sync': emails};
-  const source = context.source(
-    {...(instance ?? {id: connection, title: connection, plugin: ''}), settings},
-    lookup,
-    {
-      modelInstance: model,
-      state: stagedState(null).port,
-      onModelCall: call => {
-        const at = context.now();
-        const cost = prices.price(call.usage, at);
-        ledger.recordModelCall(callRecord({...call, connection: `${connection}:trial`}, at, cost));
-        result.calls += 1;
-        result.costNanoUsd += cost.costNanoUsd ?? 0;
-        result.unpriced += cost.costNanoUsd === null ? 1 : 0;
-      },
-    },
-  );
-  const started = Date.now();
-  const read = await documentsOf(() => source.listDocuments?.('') ?? Promise.resolve([]));
-  ledger.close();
-  return {...result, ...read, seconds: (Date.now() - started) / 1000};
+interface Tally {
+  model: string;
+  calls: number;
+  costNanoUsd: number;
+  unpriced: number;
 }
 
-function trialArguments(args: readonly string[]): {
-  connection: string | undefined;
-  models: string[];
-  emails: number | null;
-} {
+/** Records each call of a trial, as any other, and adds up what it cost. */
+function counting({context, connection}: Trial, tally: Tally): OnModelCall {
+  const ledger = context.ledger();
+  const prices = context.prices();
+  return call => {
+    const at = context.now();
+    const cost = prices.price(call.usage, at);
+    ledger.recordModelCall(callRecord({...call, connection: `${connection}:trial`}, at, cost));
+    tally.calls += 1;
+    tally.costNanoUsd += cost.costNanoUsd ?? 0;
+    tally.unpriced += cost.costNanoUsd === null ? 1 : 0;
+  };
+}
+
+async function tryModel(trial: Trial, model: string): Promise<TrialResult> {
+  const {context, connection, emails} = trial;
+  const instance = context.config().instances.find(candidate => candidate.id === connection);
+  const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
+  const tally: Tally = {model, calls: 0, costNanoUsd: 0, unpriced: 0};
+  const hooks = {
+    modelInstance: model,
+    state: stagedState(null).port,
+    onModelCall: counting(trial, tally),
+  };
+  const settings = {...instance?.settings, 'max-per-sync': emails};
+  const trialed = {...(instance ?? {id: connection, title: connection, plugin: ''}), settings};
+  const started = Date.now();
+  const read = await documentsOf(
+    () => context.source(trialed, lookup, hooks).listDocuments?.('') ?? Promise.resolve([]),
+  );
+  return {...tally, ...read, seconds: (Date.now() - started) / 1000};
+}
+
+/** Why the models named are not all configured, or null. */
+function unknownModels(context: CommandContext, models: readonly string[]): string | null {
+  const configured = context
+    .config()
+    .instances.filter(instance => context.modelPlugins.has(instance.plugin))
+    .map(instance => instance.id);
+  const unknown = models.filter(model => !configured.includes(model));
+  const available = configured.length === 0 ? 'none yet' : configured.join(', ');
+  return unknown.length === 0
+    ? null
+    : `Unknown model(s): ${unknown.join(', ')}. Configured models: ${available}; add them under Language models in caton serve.`;
+}
+
+interface TrialRequest {
+  readonly connection: string;
+  readonly models: readonly string[];
+  readonly emails: number;
+}
+
+/** The trial asked for; `emails` is 0 when its count is not a positive whole number. */
+function trialRequest(args: readonly string[]): TrialRequest {
   const flag = args.indexOf('--emails');
   const count = flag < 0 ? 20 : Number.parseInt(args[flag + 1] ?? '', 10);
   const rest = args.filter((_, index) => flag < 0 || (index !== flag && index !== flag + 1));
-  const [connection, ...models] = rest;
-  return {connection, models, emails: Number.isInteger(count) && count > 0 ? count : null};
+  const [connection = '', ...models] = rest;
+  return {connection, models, emails: Number.isInteger(count) && count > 0 ? count : 0};
+}
+
+/** Why a trial cannot run, or null. */
+function trialProblem(context: CommandContext, request: TrialRequest): string | null {
+  const known = context.config().instances.some(instance => instance.id === request.connection);
+  if (!known || request.models.length === 0 || request.emails === 0) {
+    return TRIAL_USAGE;
+  }
+  return unknownModels(context, request.models);
 }
 
 /**
@@ -75,12 +111,13 @@ export async function trialCommand(
   context: CommandContext,
   args: readonly string[],
 ): Promise<number> {
-  const {connection, models, emails} = trialArguments(args);
-  const known = context.config().instances.some(instance => instance.id === connection);
-  if (connection === undefined || models.length === 0 || !known || emails === null) {
-    context.output.error(TRIAL_USAGE);
+  const request = trialRequest(args);
+  const problem = trialProblem(context, request);
+  if (problem !== null) {
+    context.output.error(problem);
     return 2;
   }
+  const {connection, models, emails} = request;
   await context.prices().refresh();
   const results: TrialResult[] = [];
   for (const model of models) {
