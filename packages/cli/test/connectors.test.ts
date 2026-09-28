@@ -18,6 +18,7 @@ const fakeConnector: Connector = {
       {key: 'user', label: 'User', kind: 'text', required: true, help: 'A user.'},
       {key: 'password', label: 'Password', kind: 'secret', required: true, help: 'A password.'},
       {key: 'model', label: 'Model', kind: 'model', required: false, help: 'A model.'},
+      {key: 'effort', label: 'Effort', kind: 'effort', required: false, help: 'An effort.'},
     ],
   },
   createSource: (variables, environment: ConnectorEnvironment) => {
@@ -35,8 +36,8 @@ const fakeProvider: ModelProvider = {
     network: [],
     variables: [{key: 'api-key', label: 'API key', kind: 'secret', required: true, help: 'A key.'}],
   },
-  createModel: (variables): LanguageModel => ({
-    name: `fake with ${String(variables['api-key'])}`,
+  createModel: (variables, {reasoning}): LanguageModel => ({
+    name: `fake with ${String(variables['api-key'])} at ${reasoning}`,
     extract: () => Promise.reject(new Error('unused')),
   }),
 };
@@ -78,8 +79,23 @@ describe('sourceFactory with models', () => {
     );
 
     source(user, lookup);
+    source({...user, settings: {...user.settings, effort: 'high'}}, lookup);
 
-    expect(received[2]).toBe('fake with key');
+    expect([received[2], received[5]]).toEqual([
+      'fake with key at provider-default',
+      'fake with key at high',
+    ]);
+  });
+
+  it('refuses a thinking effort it does not know', () => {
+    const user = {...instance, settings: {user: 'me', model: 'claude', effort: 'huge'}};
+    const source = sourceFactory(
+      plugins,
+      () => '',
+      () => [user, model],
+    );
+
+    expect(() => source(user, lookup)).toThrow('My bank: the thinking effort "huge" is not one of');
   });
 });
 

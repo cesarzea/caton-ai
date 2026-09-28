@@ -4,13 +4,28 @@ import * as z from 'zod';
 
 const IDENTIFIER = /^[a-z0-9][a-z0-9-]*$/u;
 
+/** Reasoning effort levels, as the core names them (ADR 0021). */
+export const REASONING_EFFORTS = [
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+] as const;
+
 export const variableSpecSchema = z.object({
   key: z.string(),
   label: z.string(),
-  kind: z.enum(['text', 'number', 'choice', 'list', 'secret', 'secret-file', 'model']),
+  kind: z.enum(['text', 'number', 'choice', 'list', 'secret', 'secret-file', 'model', 'effort']),
   required: z.boolean(),
   default: z.union([z.string(), z.number()]).optional(),
   choices: z.array(z.string()).optional(),
+  /** Shown, required and passed only while another variable holds one of `values`. */
+  when: z.object({variable: z.string(), values: z.array(z.string())}).optional(),
+  /** A secret shared by the instances with the same value in that `choice` variable. */
+  sharedPer: z.string().optional(),
   help: z.string(),
 });
 

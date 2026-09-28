@@ -33,6 +33,8 @@ const PLUGINS: PluginInfo[] = [
         required: true,
         help: 'Create it at [Google Account](https://myaccount.google.com/apppasswords).',
       },
+      {key: 'model', label: 'Language model', kind: 'model', required: false, help: 'Reads it.'},
+      {key: 'effort', label: 'Thinking effort', kind: 'effort', required: false, help: 'How hard.'},
     ],
   },
   {
@@ -53,12 +55,50 @@ const PLUGINS: PluginInfo[] = [
   },
 ];
 
+const KEYED = ['anthropic', 'openai'];
+
+const LLM: PluginInfo = {
+  id: 'llm',
+  kind: 'model',
+  title: 'Language model',
+  description: 'Any provider.',
+  network: [],
+  variables: [
+    {
+      key: 'provider',
+      label: 'Provider',
+      kind: 'choice',
+      required: true,
+      choices: [...KEYED, 'ollama'],
+      help: 'Who runs it.',
+    },
+    {key: 'model', label: 'Model', kind: 'text', required: true, help: 'Its name.'},
+    {
+      key: 'api-key',
+      label: 'API key',
+      kind: 'secret',
+      required: true,
+      when: {variable: 'provider', values: KEYED},
+      sharedPer: 'provider',
+      help: 'From the console.',
+    },
+    {
+      key: 'base-url',
+      label: 'Address',
+      kind: 'text',
+      required: false,
+      when: {variable: 'provider', values: ['ollama']},
+      help: 'Where it listens.',
+    },
+  ],
+};
+
 export function configurationOf(
   api: FakeState,
   record: Record,
 ): Pick<Api, 'plugins' | 'instances' | 'createInstance' | 'updateInstance' | 'removeInstance'> {
   return {
-    plugins: () => Promise.resolve(PLUGINS),
+    plugins: () => Promise.resolve([...PLUGINS, LLM]),
     instances: () => Promise.resolve(api.configured),
     createInstance: async request => {
       await record('createInstance', request);

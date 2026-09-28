@@ -36,16 +36,9 @@ export const text = {
     empty: 'No connections yet.',
     add: 'Add a connection',
     edit: 'Edit',
-    newTitle: 'New connection',
-    editTitle: (title: string) => `Edit ${title}`,
     plugin: 'Plugin',
-    name: 'Connection name',
-    nameHelp:
-      'How you call this connection. Its identifier is made from the first name you give it and never changes.',
     save: 'Save',
     cancel: 'Cancel',
-    remove: 'Remove connection',
-    confirmRemove: 'Confirm: remove this connection',
     secretReady: 'A new value will be saved.',
     useShared: 'Or use a shared secret',
     noShared: 'Choose…',
@@ -53,6 +46,53 @@ export const text = {
     listHint: 'Separate values with commas.',
     needs: (labels: readonly string[]) => `Needs: ${labels.join(', ')}`,
     loadFile: 'Load from a file',
+  },
+  editor: {
+    connector: {
+      newTitle: 'New connection',
+      editTitle: (title: string) => `Edit ${title}`,
+      name: 'Connection name',
+      nameHelp:
+        'How you call this connection. Its identifier is made from the first name you give it and never changes.',
+      remove: 'Remove connection',
+      confirmRemove: 'Confirm: remove this connection',
+    },
+    model: {
+      newTitle: 'New language model',
+      editTitle: (title: string) => `Edit ${title}`,
+      name: 'Model name',
+      nameHelp:
+        'How connections list this model, such as "Claude for receipts". Its identifier is made from the first name you give it and never changes.',
+      remove: 'Remove model',
+      confirmRemove: 'Confirm: remove this model',
+    },
+  },
+  models: {
+    title: 'Language models',
+    intro:
+      "The models connections can use to read text, from any provider. A provider's key is asked once, saved encrypted, and reused by all its models.",
+    empty: 'No language models yet.',
+    add: 'Add a language model',
+    columns: ['Model', 'Settings', 'Status', 'Used by'],
+    ready: 'Ready',
+    unused: 'No connection',
+    choose: 'Choose a model…',
+    none: 'No language model yet: add one under Language models first.',
+  },
+  effort: {
+    'provider-default': "Provider's default",
+    none: 'None: answer directly',
+    minimal: 'Minimal',
+    low: 'Low',
+    medium: 'Medium',
+    high: 'High',
+    xhigh: 'Maximum',
+  },
+  providerKey: {
+    saved: (name: string) => `Saved as ${name}`,
+    replace: 'Replace the key',
+    willSave: (name: string) =>
+      `Saved encrypted as ${name} and reused by every model of this provider.`,
   },
   connections: {
     title: 'Connections',

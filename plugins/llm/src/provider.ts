@@ -28,18 +28,14 @@ export const llmProvider: ModelProvider = {
     ],
     variables: VARIABLES,
   },
-  createModel: variables => {
+  createModel: (variables, {reasoning}) => {
     const parsed = variablesSchema.safeParse(variables);
     if (!parsed.success) {
       const wrong = [...new Set(parsed.error.issues.map(issue => String(issue.path[0])))];
       throw new TypeError(`Invalid language model variables: ${wrong.join(', ')}`);
     }
     const {provider, model} = parsed.data;
-    return languageModel({
-      provider,
-      model,
-      apiKey: parsed.data['api-key'],
-      baseUrl: parsed.data['base-url'],
-    });
+    const {'api-key': apiKey, 'base-url': baseUrl} = parsed.data;
+    return languageModel({provider, model, apiKey, baseUrl, reasoning});
   },
 };

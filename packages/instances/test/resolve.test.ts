@@ -98,3 +98,28 @@ describe('storeNeeds', () => {
     });
   });
 });
+
+const CONDITIONAL: VariableSpec[] = [
+  {key: 'provider', label: 'Provider', kind: 'choice', required: true, default: 'cloud', help: ''},
+  {
+    key: 'api-key',
+    label: 'API key',
+    kind: 'secret',
+    required: true,
+    when: {variable: 'provider', values: ['cloud']},
+    help: '',
+  },
+];
+
+describe('variables with a condition', () => {
+  it('apply only while the other variable, or its default, holds one of their values', () => {
+    const local = {...mailbox({provider: 'local'}), plugin: 'llm'};
+    const cloud = {...mailbox({}), plugin: 'llm'};
+    const catalog = new Map([['llm', CONDITIONAL]]);
+
+    expect(resolveVariables(local, CONDITIONAL, store({}))).toEqual({provider: 'local'});
+    expect(() => resolveVariables(cloud, CONDITIONAL, store({}))).toThrow('API key is missing');
+    expect([...storeNeeds([local], catalog).keys()]).toEqual([]);
+    expect([...storeNeeds([cloud], catalog).keys()]).toEqual(['llm:amex:api-key']);
+  });
+});
