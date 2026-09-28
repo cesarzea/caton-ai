@@ -1,3 +1,5 @@
+import {reports} from './text-reports.ts';
+
 /** Every string of the interface, in one place, ready for translation. */
 export const text = {
   product: 'Catón AI',
@@ -94,6 +96,7 @@ export const text = {
     willSave: (name: string) =>
       `Saved encrypted as ${name} and reused by every model of this provider.`,
   },
+  reports,
   sync: {
     all: 'Sync all',
     button: 'Sync',

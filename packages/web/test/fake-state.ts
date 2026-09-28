@@ -1,4 +1,10 @@
-import type {InstanceInfo, StoreStatus} from '@caton-ai/api';
+import type {
+  DocumentInfo,
+  InstanceInfo,
+  SpendReport,
+  StoreStatus,
+  UpcomingCharge,
+} from '@caton-ai/api';
 
 /** What the fake server holds. */
 export interface FakeState {
@@ -12,6 +18,8 @@ export interface FakeState {
   signedIn: boolean;
   /** Connections the fake server is syncing. */
   syncing: string[];
+  /** What the fake ledger shows. */
+  reports: {spend: SpendReport; documents: DocumentInfo[]; upcoming: UpcomingCharge[]};
 }
 
 /** Records a call to the fake server. */

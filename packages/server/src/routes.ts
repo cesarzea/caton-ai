@@ -15,7 +15,7 @@ import {
   unlockStore,
 } from './store-routes.ts';
 import {createInstance, deleteInstance, updateInstance} from './instances.ts';
-import {documentList, spendReport, upcomingList} from './reports.ts';
+import {reportRouteFor} from './report-routes.ts';
 import {sessionCookie} from './sessions.ts';
 
 const INSTANCE_PATH = /^\/api\/instances\/([a-z0-9][a-z0-9-]*)$/u;
@@ -90,19 +90,6 @@ function storeRouteFor(route: string): Handler | undefined {
       return secretList;
     case 'POST /api/sync':
       return startSync;
-    default:
-      return undefined;
-  }
-}
-
-function reportRouteFor(route: string): Handler | undefined {
-  switch (route) {
-    case 'GET /api/spend':
-      return spendReport;
-    case 'GET /api/documents':
-      return documentList;
-    case 'GET /api/upcoming':
-      return upcomingList;
     default:
       return undefined;
   }

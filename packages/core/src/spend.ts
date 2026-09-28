@@ -22,7 +22,11 @@ export interface MonthlySpend {
   readonly notSeen: Money;
 }
 
-type Bucket = {total: Money; onlyInDocuments: Money; notSeen: Money};
+interface Bucket {
+  total: Money;
+  onlyInDocuments: Money;
+  notSeen: Money;
+}
 
 function add(totals: Map<string, Bucket>, month: string, amount: Money, item: SpendItem): void {
   const key = `${month} ${amount.currency}`;

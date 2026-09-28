@@ -19,12 +19,21 @@ const monthView = ({month, total, onlyInDocuments, notSeen}: MonthlySpend): Spen
 });
 
 function documentView({document, transactionId}: LedgerDocument): DocumentInfo {
-  const {id: _id, amount, ...fields} = document;
+  const {amount} = document;
   return {
-    ...fields,
+    kind: document.kind,
+    issuer: document.issuer,
     amount: amount === null ? null : moneyToDecimal(amount),
     currency: amount?.currency ?? null,
+    issuedOn: document.issuedOn,
+    periodStart: document.periodStart,
+    periodEnd: document.periodEnd,
+    dueOn: document.dueOn,
+    reference: document.reference,
+    account: document.account,
+    verified: document.verified,
     linked: transactionId !== null,
+    origin: document.origin,
   };
 }
 

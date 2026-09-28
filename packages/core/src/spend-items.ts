@@ -14,7 +14,7 @@ export interface LinkedDocument {
  * charge of a card no connection reads; or a receipt no account shows, which may already be in
  * a card statement and so is kept apart.
  */
-export type SpendSource = 'account' | 'documents' | 'not-seen';
+type SpendSource = 'account' | 'documents' | 'not-seen';
 
 export interface SpendItem {
   readonly amount: Money;

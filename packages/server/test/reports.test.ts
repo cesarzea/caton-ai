@@ -11,26 +11,26 @@ const MONTH = {
   notSeen: '2.00',
 };
 
+const REPORTS = {
+  spend: () => ({cash: [MONTH], accrual: []}),
+  documents: () => ({documents: []}),
+  upcoming: () => ({
+    charges: [
+      {
+        issuer: 'X',
+        amount: null,
+        currency: null,
+        date: '2026-10-01',
+        account: null,
+        verified: true,
+      },
+    ],
+  }),
+};
+
 describe('reports', () => {
   it('serve spending, documents and upcoming charges to a signed-in page only', async () => {
-    const running = await started({
-      reports: {
-        spend: () => ({cash: [MONTH], accrual: []}),
-        documents: () => ({documents: []}),
-        upcoming: () => ({
-          charges: [
-            {
-              issuer: 'X',
-              amount: null,
-              currency: null,
-              date: '2026-10-01',
-              account: null,
-              verified: true,
-            },
-          ],
-        }),
-      },
-    });
+    const running = await started({reports: REPORTS});
     const cookie = await signIn(running);
     const get = async (path: string, headers = {cookie}) => call(running.port, {path, headers});
 

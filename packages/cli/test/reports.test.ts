@@ -21,27 +21,22 @@ const document = (overrides: Partial<FinancialDocument>): FinancialDocument => (
   ...overrides,
 });
 
+/** Reports over a ledger holding a card charge and a renewal notice. */
+function seeded(): ReturnType<typeof ledgerReports> {
+  const ledger = openLedger(':memory:');
+  const at = new Date('2026-09-20T10:00:00Z');
+  const renewal = document({id: 'email:<2@x>', kind: 'renewal', dueOn: '2026-10-05', amount: null});
+  const documents = [document({}), renewal];
+  ledger.saveSync({source: 'mail', startedAt: at, finishedAt: at, accounts: [], documents});
+  return ledgerReports(
+    () => ({...ledger, close: () => undefined}),
+    () => at,
+  );
+}
+
 describe('ledgerReports', () => {
-  it('reads spending on both bases, documents and upcoming charges from the ledger', () => {
-    const ledger = openLedger(':memory:');
-    const at = new Date('2026-09-20T10:00:00Z');
-    const renewal = document({
-      id: 'email:<2@x>',
-      kind: 'renewal',
-      dueOn: '2026-10-05',
-      amount: null,
-    });
-    ledger.saveSync({
-      source: 'mail',
-      startedAt: at,
-      finishedAt: at,
-      accounts: [],
-      documents: [document({}), renewal],
-    });
-    const reports = ledgerReports(
-      () => ({...ledger, close: () => undefined}),
-      () => at,
-    );
+  it('reads spending and documents from the ledger', () => {
+    const reports = seeded();
 
     expect(reports.spend().cash).toEqual([
       {
@@ -58,7 +53,12 @@ describe('ledgerReports', () => {
       ['charge', '25.00', false],
       ['renewal', null, false],
     ]);
-    expect(reports.upcoming().charges).toEqual([
+  });
+});
+
+describe('ledgerReports of renewals', () => {
+  it('reads the charges renewal notices announce', () => {
+    expect(seeded().upcoming().charges).toEqual([
       {
         issuer: 'Store',
         amount: null,
@@ -69,7 +69,9 @@ describe('ledgerReports', () => {
       },
     ]);
   });
+});
 
+describe('ledgerReports without a ledger', () => {
   it('shows nothing while there is no ledger', () => {
     const reports = ledgerReports(
       () => null,

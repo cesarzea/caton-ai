@@ -8,6 +8,7 @@ import {Connections} from './components/Connections.tsx';
 import {CreateStore} from './components/CreateStore.tsx';
 import {Configured} from './components/Configured.tsx';
 import {Layout, Notice} from './components/Layout.tsx';
+import {Reports} from './components/Reports.tsx';
 import {Unlock} from './components/Unlock.tsx';
 import {text} from './text.ts';
 
@@ -78,8 +79,13 @@ function Ready({api, status, reload}: ReadyProps): ReactNode {
   const lock = (): void => {
     void api.lock().then(reload);
   };
+  const version = [
+    ...status.syncing,
+    ...status.connections.map(connection => connection.lastRunAt ?? ''),
+  ].join(' ');
   return (
     <Layout {...(lockable ? {onLock: lock} : {})}>
+      <Reports api={api} version={version} />
       <StorePanels api={api} status={status} reload={reload} />
     </Layout>
   );

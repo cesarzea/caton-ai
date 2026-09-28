@@ -22,6 +22,13 @@ const document = (overrides: Partial<FinancialDocument>): FinancialDocument => (
   ...overrides,
 });
 
+const row = (month: string, minorUnits: number, currency: string) => ({
+  month,
+  total: money(minorUnits, currency),
+  onlyInDocuments: zero(currency),
+  notSeen: zero(currency),
+});
+
 describe('monthlySpend from transactions', () => {
   it('adds booked outflows per month and currency as positive totals', () => {
     const totals = monthlySpend(
@@ -35,27 +42,14 @@ describe('monthlySpend from transactions', () => {
     );
 
     expect(totals).toEqual([
-      {
-        month: '2026-08',
-        total: money(9_000, 'EUR'),
-        onlyInDocuments: zero('EUR'),
-        notSeen: zero('EUR'),
-      },
-      {
-        month: '2026-08',
-        total: money(62, 'USD'),
-        onlyInDocuments: zero('USD'),
-        notSeen: zero('USD'),
-      },
-      {
-        month: '2026-09',
-        total: money(32_000, 'EUR'),
-        onlyInDocuments: zero('EUR'),
-        notSeen: zero('EUR'),
-      },
+      row('2026-08', 9_000, 'EUR'),
+      row('2026-08', 62, 'USD'),
+      row('2026-09', 32_000, 'EUR'),
     ]);
   });
+});
 
+describe('monthlySpend of what did not leave', () => {
   it('ignores income, pending movements and undated entries', () => {
     const totals = monthlySpend(
       [
