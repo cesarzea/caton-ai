@@ -21,7 +21,7 @@ discussion are marked **Proposed**.
 | [0013](0013-read-only-mcp-server.md)                          | Read-only MCP server over the ledger                           | Proposed |
 | [0014](0014-connector-plugin-contract.md)                     | Connector plugin contract                                      | Proposed |
 | [0015](0015-email-alerts-connector.md)                        | Email documents connector                                      | Proposed |
-| [0016](0016-financial-documents-and-reconciliation.md)        | Financial documents and reconciliation in the core             | Proposed |
+| [0016](0016-financial-documents-and-reconciliation.md)        | Financial documents and reconciliation in the core             | Accepted |
 | [0017](0017-secret-store.md)                                  | Secret store: age encryption, key kept where the user chooses  | Accepted |
 | [0018](0018-local-web-interface.md)                           | Local web interface served by `caton serve`                    | Accepted |
 | [0019](0019-plugin-variables-instances-and-shared-secrets.md) | Plugin variables, instances and shared secrets                 | Accepted |
