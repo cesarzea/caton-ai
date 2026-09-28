@@ -28,6 +28,19 @@ Options considered:
   provider, model, API key (a secret, shareable with a macro) and, for local servers, their
   address. Providers offered: Anthropic, OpenAI, Google, OpenRouter, Ollama and any
   OpenAI-compatible server. Adding one is adding its AI SDK package.
+- **A language models centre in the web interface.** The configured models of every provider are
+  listed apart from the connections, with what each still lacks and which connections use it.
+  - A provider's API key is asked only while that provider has none. It is saved encrypted once,
+    as the shared secret `<provider>-api-key`, and every model of that provider points at it.
+    The contract says so with `sharedPer` on the secret; `when` shows a variable only for the
+    providers it applies to, such as the address of a local server.
+  - Removing a model that connections use names them before the confirming click.
+- **Each connection chooses its model and its thinking effort.** A plugin declares a `model`
+  variable and an `effort` variable; the web interface offers the configured models and the AI
+  SDK's portable levels (`none`, `minimal`, `low`, `medium`, `high`, `xhigh`, or the provider's
+  default). One model instance serves many connections, each with its own effort, bound when the
+  host builds the model for that connection. For Claude Opus 5 the effort becomes adaptive
+  thinking at that level, never a fixed token budget, alongside the fallback.
 - **The core port stays small.** A model only extracts: instructions from the host, the text as
   data, and a JSON schema for the answer. It has no tools. Callers validate the answer.
 - **Provider features are kept where they matter.** Claude Opus 5 calls ask for the server-side

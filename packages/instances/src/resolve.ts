@@ -10,6 +10,20 @@ export type Lookup = (key: string) => string | undefined;
 export const isSecret = (spec: VariableSpec): boolean =>
   spec.kind === 'secret' || spec.kind === 'secret-file';
 
+/** Whether a variable applies to an instance: always, or while its condition holds. */
+export function applies(
+  spec: VariableSpec,
+  instance: Instance,
+  specs: readonly VariableSpec[],
+): boolean {
+  if (spec.when === undefined) {
+    return true;
+  }
+  const {variable, values} = spec.when;
+  const value = instance.settings[variable] ?? specs.find(other => other.key === variable)?.default;
+  return typeof value === 'string' && values.includes(value);
+}
+
 function rawValue(instance: Instance, spec: VariableSpec, lookup: Lookup): unknown {
   if (isSecret(spec)) {
     return lookup(secretKey(instance.plugin, instance.id, spec.key));
@@ -56,7 +70,7 @@ export function resolveVariables(
 ): Record<string, unknown> {
   const problems: string[] = [];
   const variables: Record<string, unknown> = {};
-  for (const spec of specs) {
+  for (const spec of specs.filter(candidate => applies(candidate, instance, specs))) {
     const value = throughMacro(rawValue(instance, spec, lookup), spec, lookup, problems);
     if (value === undefined || value === '') {
       if (spec.required && problems.every(problem => !problem.startsWith(spec.label))) {

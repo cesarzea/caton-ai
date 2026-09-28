@@ -13,9 +13,10 @@ function infoOf(manifest: ConnectorManifest, kind: PluginInfo['kind']): PluginIn
     title: manifest.title,
     description: manifest.description,
     network: [...manifest.network],
-    variables: manifest.variables.map(({choices, ...variable}) => ({
+    variables: manifest.variables.map(({choices, when, ...variable}) => ({
       ...variable,
       ...(choices === undefined ? {} : {choices: [...choices]}),
+      ...(when === undefined ? {} : {when: {variable: when.variable, values: [...when.values]}}),
     })),
   };
 }

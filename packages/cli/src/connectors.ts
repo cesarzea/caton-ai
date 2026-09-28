@@ -1,4 +1,13 @@
-import type {Connector, LanguageModel, ModelProvider, TransactionSource} from '@caton-ai/core';
+import {REASONING_EFFORTS} from '@caton-ai/core';
+import type {
+  Connector,
+  ConnectorEnvironment,
+  LanguageModel,
+  ModelOptions,
+  ModelProvider,
+  ReasoningEffort,
+  TransactionSource,
+} from '@caton-ai/core';
 import {resolveVariables} from '@caton-ai/instances';
 import type {Catalog, Lookup} from '@caton-ai/instances';
 
@@ -26,16 +35,55 @@ export function modelPluginsOf({models}: Plugins): ReadonlySet<string> {
 function modelResolver(
   models: readonly ModelProvider[],
   instances: () => readonly Instance[],
-): (user: Instance, id: string, lookup: Lookup) => LanguageModel {
+): (user: Instance, id: string, lookup: Lookup, options: ModelOptions) => LanguageModel {
   const byId = new Map(models.map(provider => [provider.manifest.id, provider]));
-  return (user, id, lookup) => {
+  return (user, id, lookup, options) => {
     const instance = instances().find(candidate => candidate.id === id);
     const provider = instance === undefined ? undefined : byId.get(instance.plugin);
     if (instance === undefined || provider === undefined) {
       throw new ConfigError(`${user.title} uses the model "${id}", which is not configured`);
     }
-    return provider.createModel(resolveVariables(instance, provider.manifest.variables, lookup));
+    const variables = resolveVariables(instance, provider.manifest.variables, lookup);
+    return provider.createModel(variables, options);
   };
+}
+
+const isEffort = (value: unknown): value is ReasoningEffort =>
+  (REASONING_EFFORTS as readonly unknown[]).includes(value);
+
+/** The thinking effort a connection chose for its model; the provider's own when it chose none. */
+function reasoningOf(
+  connector: Connector,
+  instance: Instance,
+  variables: Readonly<Record<string, unknown>>,
+): ReasoningEffort {
+  const spec = connector.manifest.variables.find(candidate => candidate.kind === 'effort');
+  const value = spec === undefined ? undefined : variables[spec.key];
+  if (value === undefined) {
+    return 'provider-default';
+  }
+  if (!isEffort(value)) {
+    throw new ConfigError(
+      `${instance.title}: the thinking effort ${JSON.stringify(value)} is not one of ${REASONING_EFFORTS.join(', ')}`,
+    );
+  }
+  return value;
+}
+
+/** The model instance a connection chose, if its plugin declares a `model` variable. */
+function chosenModel(
+  connector: Connector,
+  variables: Readonly<Record<string, unknown>>,
+): string | undefined {
+  const spec = connector.manifest.variables.find(candidate => candidate.kind === 'model');
+  const value = spec === undefined ? undefined : variables[spec.key];
+  return typeof value === 'string' ? value : undefined;
+}
+
+function notInstalled(instance: Instance, installed: Iterable<string>): ConfigError {
+  return new ConfigError(
+    `${instance.title} uses the plugin "${instance.plugin}", which is not installed; installed: ${[...installed].join(', ')}`,
+  );
 }
 
 /**
@@ -52,17 +100,20 @@ export function sourceFactory(
   return (instance, lookup) => {
     const connector = byId.get(instance.plugin);
     if (connector === undefined) {
-      const installed = [...byId.keys()].join(', ');
-      throw new ConfigError(
-        `${instance.title} uses the plugin "${instance.plugin}", which is not installed; installed: ${installed}`,
-      );
+      throw notInstalled(instance, byId.keys());
     }
     const variables = resolveVariables(instance, connector.manifest.variables, lookup);
-    const modelSpec = connector.manifest.variables.find(spec => spec.kind === 'model');
-    const model = modelSpec === undefined ? undefined : variables[modelSpec.key];
-    return connector.createSource(variables, {
+    const model = chosenModel(connector, variables);
+    const environment: ConnectorEnvironment = {
       pluginDirectory: pluginDirectory(instance.plugin),
-      ...(typeof model === 'string' ? {model: modelFor(instance, model, lookup)} : {}),
-    });
+      ...(model === undefined
+        ? {}
+        : {
+            model: modelFor(instance, model, lookup, {
+              reasoning: reasoningOf(connector, instance, variables),
+            }),
+          }),
+    };
+    return connector.createSource(variables, environment);
   };
 }

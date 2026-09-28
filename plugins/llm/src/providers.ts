@@ -3,6 +3,7 @@ import {createGoogle} from '@ai-sdk/google';
 import {createOpenAI} from '@ai-sdk/openai';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
 import {createOpenRouter} from '@openrouter/ai-sdk-provider';
+import type {ReasoningEffort} from '@caton-ai/core';
 import type {LanguageModel as SdkModel} from 'ai';
 
 import type {ProviderId} from './variables.ts';
@@ -12,6 +13,8 @@ export interface ModelSettings {
   readonly model: string;
   readonly apiKey?: string | undefined;
   readonly baseUrl?: string | undefined;
+  /** How much the model reasons for the connection using it. */
+  readonly reasoning?: ReasoningEffort | undefined;
   /** Only tests replace it. */
   readonly fetch?: typeof fetch | undefined;
 }

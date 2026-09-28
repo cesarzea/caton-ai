@@ -1,3 +1,19 @@
+/**
+ * How much a model reasons before answering, as the AI SDK names the levels. `provider-default`
+ * leaves it to the provider; models that cannot reason ignore it.
+ */
+export const REASONING_EFFORTS = [
+  'provider-default',
+  'none',
+  'minimal',
+  'low',
+  'medium',
+  'high',
+  'xhigh',
+] as const;
+
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
 /** A JSON Schema (draft 2020-12) object that a model's answer must match. */
 export type JsonSchema = Readonly<Record<string, unknown>>;
 

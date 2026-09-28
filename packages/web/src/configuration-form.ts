@@ -1,6 +1,8 @@
 import type {InstanceInfo, InstanceRequest, PluginInfo, VariableSpecInfo} from '@caton-ai/api';
 import {MACRO} from '@caton-ai/api';
 
+import {applies} from './variables.ts';
+
 export const isSecret = (spec: VariableSpecInfo): boolean =>
   spec.kind === 'secret' || spec.kind === 'secret-file';
 
@@ -50,27 +52,24 @@ function numberOf(spec: VariableSpecInfo): (value: string) => number {
   };
 }
 
-function converterOf(
-  kind: VariableSpecInfo['kind'],
-  spec: VariableSpecInfo,
-): (text: string) => SettingValue {
-  switch (kind) {
-    case 'list':
-      return asList;
-    case 'number':
-      return numberOf(spec);
-    case 'text':
-    case 'choice':
-    case 'secret':
-    case 'secret-file':
-    case 'model':
-      return asText;
-  }
-}
+type Converter = (text: string) => SettingValue;
+
+const CONVERTERS: Readonly<
+  Record<VariableSpecInfo['kind'], (spec: VariableSpecInfo) => Converter>
+> = {
+  list: () => asList,
+  number: numberOf,
+  text: () => asText,
+  choice: () => asText,
+  secret: () => asText,
+  'secret-file': () => asText,
+  model: () => asText,
+  effort: () => asText,
+};
 
 /** A typed value; a `${name}` macro stays text, to be resolved when the connection syncs. */
 function typed(spec: VariableSpecInfo, value: string): SettingValue {
-  return converterOf(MACRO.test(value) ? 'text' : spec.kind, spec)(value);
+  return CONVERTERS[MACRO.test(value) ? 'text' : spec.kind](spec)(value);
 }
 
 /** The request for the server: non-secret settings only, empty ones left out. */
@@ -81,7 +80,10 @@ export function instanceRequest(
   creating: boolean,
 ): InstanceRequest {
   const values: InstanceRequest['settings'] = {};
-  for (const spec of plugin.variables.filter(variable => !isSecret(variable))) {
+  const sent = plugin.variables.filter(
+    variable => !isSecret(variable) && applies(variable, settings, plugin.variables),
+  );
+  for (const spec of sent) {
     const value = (settings[spec.key] ?? '').trim();
     if (value !== '') {
       values[spec.key] = typed(spec, value);

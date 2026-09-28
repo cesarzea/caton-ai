@@ -1,4 +1,4 @@
-import type {LanguageModel} from './model.ts';
+import type {LanguageModel, ReasoningEffort} from './model.ts';
 import type {TransactionSource} from './source.ts';
 
 /**
@@ -7,10 +7,17 @@ import type {TransactionSource} from './source.ts';
  * - `secret` (one line, such as a password) and `secret-file` (loaded whole from a file, such as
  *   a PEM key) live only in the encrypted secret store;
  * - `model` is the id of a configured language model instance, which the host turns into a
- *   `LanguageModel` for the plugin (ADR 0020).
+ *   `LanguageModel` for the plugin (ADR 0020), and `effort` how much that model reasons for this
+ *   plugin, one of `REASONING_EFFORTS` (ADR 0021).
  */
 export type VariableKind =
-  'text' | 'number' | 'choice' | 'list' | 'secret' | 'secret-file' | 'model';
+  'text' | 'number' | 'choice' | 'list' | 'secret' | 'secret-file' | 'model' | 'effort';
+
+/** A variable that only applies while another variable holds one of `values`. */
+export interface VariableCondition {
+  readonly variable: string;
+  readonly values: readonly string[];
+}
 
 /** A value a plugin needs from the user, explained so that they know what it is and where to get it. */
 export interface VariableSpec {
@@ -22,6 +29,13 @@ export interface VariableSpec {
   readonly default?: string | number;
   /** Allowed values of a `choice` or `list`; plugins may also offer them at run time. */
   readonly choices?: readonly string[];
+  /** When the variable applies; otherwise it is neither shown, required nor passed. */
+  readonly when?: VariableCondition;
+  /**
+   * For a secret: the key of a `choice` variable. Instances with the same value there share this
+   * secret, kept as the shared secret `<value>-<key>`, such as one API key per provider.
+   */
+  readonly sharedPer?: string;
   /**
    * What the value is and where to obtain it, as long as needed. A small Markdown subset:
    * paragraphs, `- ` lists, `**bold**`, `` `code` `` and `[text](https://…)` links.
@@ -67,9 +81,17 @@ export interface Connector {
   ): TransactionSource;
 }
 
+/** How a connection uses the model it chose. */
+export interface ModelOptions {
+  readonly reasoning: ReasoningEffort;
+}
+
 /** A plugin that makes language models available, configured as instances like connectors. */
 export interface ModelProvider {
   readonly manifest: ConnectorManifest;
-  /** Builds the model of one instance; secrets arrive resolved, as for connectors. */
-  createModel(variables: Readonly<Record<string, unknown>>): LanguageModel;
+  /**
+   * Builds the model of one instance for one connection; secrets arrive resolved, as for
+   * connectors. One model instance serves many connections, each with its own options.
+   */
+  createModel(variables: Readonly<Record<string, unknown>>, options: ModelOptions): LanguageModel;
 }

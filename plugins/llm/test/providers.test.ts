@@ -22,6 +22,8 @@ function recording(sent: Sent[], answer: unknown): typeof fetch {
   };
 }
 
+const REQUEST = {instructions: 'Find it.', content: 'Paid 12', schema: {type: 'object'}};
+
 const CLAUDE_ANSWER = {
   id: 'msg_1',
   type: 'message',
@@ -49,6 +51,23 @@ describe('the Anthropic provider', () => {
     expect(sent[0]?.url).toBe('https://api.anthropic.com/v1/messages');
     expect(sent[0]?.body).toMatchObject({model: 'claude-opus-5', fallbacks: 'default'});
     expect(providerOptions({...settings, model: 'claude-haiku-4-5'})).toEqual({});
+  });
+});
+
+describe('the Anthropic provider with a thinking effort', () => {
+  it('asks Opus 5 for adaptive thinking at that effort, keeping the fallbacks', async () => {
+    const sent: Sent[] = [];
+    const fetch = recording(sent, CLAUDE_ANSWER);
+    const settings = {provider: 'anthropic', model: 'claude-opus-5', apiKey: 'k'} as const;
+
+    await languageModel({...settings, reasoning: 'high', fetch}).extract(REQUEST);
+
+    expect(sent[0]?.body).toMatchObject({
+      fallbacks: 'default',
+      thinking: {type: 'adaptive'},
+      output_config: {effort: 'high'},
+    });
+    expect(JSON.stringify(sent[0]?.body)).not.toContain('budget_tokens');
   });
 });
 
@@ -81,8 +100,11 @@ describe('providers', () => {
 
 describe('llmProvider', () => {
   it('builds the model from its variables and names the wrong ones', () => {
-    expect(llmProvider.createModel({provider: 'ollama', model: 'qwen3'}).name).toBe('ollama/qwen3');
-    expect(() => llmProvider.createModel({provider: 'nobody', 'base-url': 'not a url'})).toThrow(
+    expect(
+      llmProvider.createModel({provider: 'ollama', model: 'qwen3'}, {reasoning: 'low'}).name,
+    ).toBe('ollama/qwen3');
+    const wrong = {provider: 'nobody', 'base-url': 'not a url'};
+    expect(() => llmProvider.createModel(wrong, {reasoning: 'low'})).toThrow(
       'Invalid language model variables: provider, model, base-url',
     );
   });

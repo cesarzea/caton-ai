@@ -2,7 +2,7 @@ import type {VariableSpec} from '@caton-ai/core';
 
 import type {Instance} from './instance.ts';
 import {macroTarget, secretKey} from './macros.ts';
-import {isSecret} from './resolve.ts';
+import {applies, isSecret} from './resolve.ts';
 
 /** The variables of each installed plugin, by plugin id. */
 export type Catalog = ReadonlyMap<string, readonly VariableSpec[]>;
@@ -22,7 +22,8 @@ export function storeNeeds(
     needs.set(key, titles.includes(title) ? titles : [...titles, title]);
   };
   for (const instance of instances) {
-    for (const spec of catalog.get(instance.plugin) ?? []) {
+    const specs = catalog.get(instance.plugin) ?? [];
+    for (const spec of specs.filter(candidate => applies(candidate, instance, specs))) {
       const target = macroTarget(instance.settings[spec.key]);
       if (isSecret(spec)) {
         add(secretKey(instance.plugin, instance.id, spec.key), instance.title);

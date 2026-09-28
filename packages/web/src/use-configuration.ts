@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import type {Api} from './api.ts';
-import type {Configuration} from './use-instance-editor.ts';
+import type {Configuration} from './configuration.ts';
 import {useAction} from './use-action.ts';
 
 /** Plugins, instances and secrets, loaded together so every panel shows the same state. */

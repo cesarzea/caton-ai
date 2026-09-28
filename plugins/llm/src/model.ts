@@ -1,5 +1,5 @@
 import {ModelError} from '@caton-ai/core';
-import type {Extraction, ExtractionRequest, LanguageModel} from '@caton-ai/core';
+import type {Extraction, ExtractionRequest, LanguageModel, ReasoningEffort} from '@caton-ai/core';
 import {generateText, jsonSchema, Output} from 'ai';
 import type {LanguageModel as SdkModel} from 'ai';
 
@@ -8,9 +8,15 @@ import {providerOptions, sdkModel} from './providers.ts';
 import type {ModelSettings, ProviderOptions} from './providers.ts';
 import {usageOf} from './usage.ts';
 
-function ask(model: SdkModel, request: ExtractionRequest, options: ProviderOptions) {
+function ask(
+  model: SdkModel,
+  request: ExtractionRequest,
+  options: ProviderOptions,
+  reasoning: ReasoningEffort,
+) {
   return generateText({
     model,
+    reasoning,
     instructions: request.instructions,
     prompt: request.content,
     output: Output.object({schema: jsonSchema({...request.schema})}),
@@ -43,7 +49,7 @@ export function languageModel(
     extract: async request => {
       let result: Result;
       try {
-        result = await ask(model, request, options);
+        result = await ask(model, request, options, settings.reasoning ?? 'provider-default');
       } catch (error) {
         throw failure(settings, error);
       }

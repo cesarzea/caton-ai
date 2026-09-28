@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import type {Api} from '../api.ts';
 import {text} from '../text.ts';
-import type {Configuration} from '../use-instance-editor.ts';
+import type {Configuration} from '../configuration.ts';
 import {AddSecret} from './AddSecret.tsx';
 import {SecretRow} from './SecretRow.tsx';
 
