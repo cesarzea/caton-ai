@@ -15,6 +15,7 @@ import {
   unlockStore,
 } from './store-routes.ts';
 import {createInstance, deleteInstance, updateInstance} from './instances.ts';
+import {documentList, spendReport, upcomingList} from './reports.ts';
 import {sessionCookie} from './sessions.ts';
 
 const INSTANCE_PATH = /^\/api\/instances\/([a-z0-9][a-z0-9-]*)$/u;
@@ -94,6 +95,19 @@ function storeRouteFor(route: string): Handler | undefined {
   }
 }
 
+function reportRouteFor(route: string): Handler | undefined {
+  switch (route) {
+    case 'GET /api/spend':
+      return spendReport;
+    case 'GET /api/documents':
+      return documentList;
+    case 'GET /api/upcoming':
+      return upcomingList;
+    default:
+      return undefined;
+  }
+}
+
 function configurationRouteFor(route: string): Handler | undefined {
   switch (route) {
     case 'GET /api/plugins':
@@ -110,7 +124,7 @@ function configurationRouteFor(route: string): Handler | undefined {
 /** The fixed set of routes; anything else is not found. */
 function routeFor(method: string | undefined, path: string): Handler {
   const route = `${method ?? ''} ${path}`;
-  const handler = storeRouteFor(route) ?? configurationRouteFor(route);
+  const handler = storeRouteFor(route) ?? configurationRouteFor(route) ?? reportRouteFor(route);
   if (handler === undefined) {
     throw new HttpError(404, 'Not found');
   }

@@ -96,3 +96,4 @@ export type InitStoreRequest = z.infer<typeof initStoreRequestSchema>;
 export type SecretEntry = z.infer<typeof secretEntrySchema>;
 
 export * from './plugins.ts';
+export * from './reports.ts';

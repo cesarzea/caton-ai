@@ -69,6 +69,11 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     plugins: PLUGINS,
     configuration: memoryConfiguration(),
     sync: () => Promise.resolve(),
+    reports: {
+      spend: () => ({cash: [], accrual: []}),
+      documents: () => ({documents: []}),
+      upcoming: () => ({charges: []}),
+    },
     assets: null,
     log: message => {
       logged.push(message);
