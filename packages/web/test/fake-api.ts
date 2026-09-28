@@ -105,7 +105,7 @@ export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
         id: 'amex',
         title: 'Amex',
         plugin: 'email-alerts',
-        settings: {'imap-user': 'me@example.com', 'imap-port': 993},
+        settings: {'imap-user': 'me@example.com'},
       },
     ],
     store: {state: 'missing', keySource: null, error: null, ...store},

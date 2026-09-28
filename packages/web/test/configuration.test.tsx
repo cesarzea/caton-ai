@@ -127,3 +127,12 @@ describe('editing a connection', () => {
     expect(within(await screen.findByRole('table')).getByText('Amex')).toBeDefined();
   });
 });
+
+describe('editing a connection saved before a variable existed', () => {
+  it('shows the new variable at its default', async () => {
+    const {user} = openApp(unlocked());
+    await user.click(await screen.findByRole('button', {name: 'Edit Amex'}));
+
+    expect(screen.getByLabelText('IMAP port').getAttribute('value')).toBe('993');
+  });
+});
