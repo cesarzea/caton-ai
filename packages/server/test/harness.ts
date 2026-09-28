@@ -67,6 +67,7 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     secretNeeds: () => new Map([['email-alerts:amex:imap-password', ['Amex']]]),
     plugins: PLUGINS,
     configuration: memoryConfiguration(),
+    sync: () => Promise.resolve(),
     assets: null,
     log: message => {
       logged.push(message);

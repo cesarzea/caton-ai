@@ -2,6 +2,9 @@ import type {ConnectionStatus} from '@caton-ai/api';
 import type {ReactNode} from 'react';
 
 import {text} from '../text.ts';
+import {Outcome, Problem, RowActions} from './ConnectionCells.tsx';
+import type {Actions} from './ConnectionCells.tsx';
+import {SyncButton} from './SyncButton.tsx';
 
 const when = (iso: string | null): string =>
   iso === null
@@ -10,75 +13,33 @@ const when = (iso: string | null): string =>
         new Date(iso),
       );
 
-type Editable = Readonly<{
-  onEdit?: (id: string) => void;
-  needs?: ReadonlyMap<string, readonly string[]>;
-}>;
-
-function EditButton({
-  connection,
-  onEdit,
-}: Readonly<{connection: ConnectionStatus; onEdit: (id: string) => void}>): ReactNode {
-  return (
-    <td>
-      <button
-        type="button"
-        className="button secondary"
-        aria-label={`${text.configuration.edit} ${connection.title}`}
-        onClick={() => {
-          onEdit(connection.id);
-        }}
-      >
-        {text.configuration.edit}
-      </button>
-    </td>
-  );
-}
-
-/** What stops a connection: required variables still missing, then the last sync error. */
-function Problem({
-  connection,
-  missing,
-}: Readonly<{connection: ConnectionStatus; missing: readonly string[] | undefined}>): ReactNode {
-  return (
-    <td className="problem">
-      {missing === undefined ? null : <strong>{text.configuration.needs(missing)}</strong>}
-      {missing !== undefined && connection.error !== null ? <br /> : null}
-      {connection.error ?? ''}
-    </td>
-  );
-}
+type Editable = Readonly<{actions?: Actions; syncing?: readonly string[]}>;
 
 function Row({
   connection,
-  onEdit,
-  needs,
+  actions,
+  syncing = [],
 }: Readonly<{connection: ConnectionStatus}> & Editable): ReactNode {
   return (
     <tr>
       <th scope="row">{connection.title}</th>
       <td>{connection.plugin}</td>
       <td>
-        <span className={`badge ${connection.lastOutcome}`}>
-          {text.connections.outcome[connection.lastOutcome]}
-        </span>
+        <Outcome connection={connection} syncing={syncing.includes(connection.id)} />
       </td>
       <td>{when(connection.lastRunAt)}</td>
-      <Problem connection={connection} missing={needs?.get(connection.id)} />
-      {onEdit === undefined ? null : <EditButton connection={connection} onEdit={onEdit} />}
+      <Problem connection={connection} missing={actions?.needs.get(connection.id)} />
+      {actions === undefined ? null : (
+        <RowActions connection={connection} actions={actions} busy={syncing.length > 0} />
+      )}
     </tr>
   );
 }
 
 function Table({
   connections,
-  onEdit,
-  needs,
+  ...editable
 }: Readonly<{connections: readonly ConnectionStatus[]}> & Editable): ReactNode {
-  const editable = {
-    ...(onEdit === undefined ? {} : {onEdit}),
-    ...(needs === undefined ? {} : {needs}),
-  };
   return (
     <table className="table">
       <thead>
@@ -88,7 +49,9 @@ function Table({
               {column}
             </th>
           ))}
-          {onEdit === undefined ? null : <th scope="col" aria-label={text.configuration.edit} />}
+          {editable.actions === undefined ? null : (
+            <th scope="col" aria-label={text.configuration.edit} />
+          )}
         </tr>
       </thead>
       <tbody>
@@ -100,28 +63,42 @@ function Table({
   );
 }
 
-type Props = Readonly<{
-  connections: readonly ConnectionStatus[];
-  onAdd?: () => void;
-}> &
-  Editable;
+type Props = Readonly<{connections: readonly ConnectionStatus[]; onAdd?: () => void}> & Editable;
 
-/** The state of every connection; editable once the secret store is open. */
-export function Connections({connections, onEdit, needs, onAdd}: Props): ReactNode {
-  const editable = {
-    ...(onEdit === undefined ? {} : {onEdit}),
-    ...(needs === undefined ? {} : {needs}),
-  };
+function Heading({connections, onAdd, actions, syncing = []}: Props): ReactNode {
   return (
-    <section className="card">
-      <div className="card-heading">
-        <h2>{text.connections.title}</h2>
+    <div className="card-heading">
+      <h2>{text.connections.title}</h2>
+      <div className="heading-actions">
+        {actions === undefined || connections.length === 0 ? null : (
+          <SyncButton
+            title={null}
+            busy={syncing.length > 0}
+            onSync={() => {
+              actions.onSync(null);
+            }}
+          />
+        )}
         {onAdd === undefined ? null : (
           <button type="button" className="button primary" onClick={onAdd}>
             {text.configuration.add}
           </button>
         )}
       </div>
+    </div>
+  );
+}
+
+/** The state of every connection; editable and syncable once the secret store is open. */
+export function Connections(props: Props): ReactNode {
+  const {connections, actions, syncing} = props;
+  const editable = {
+    ...(actions === undefined ? {} : {actions}),
+    ...(syncing === undefined ? {} : {syncing}),
+  };
+  return (
+    <section className="card">
+      <Heading {...props} />
       {connections.length === 0 ? (
         <p className="muted">{text.connections.empty}</p>
       ) : (

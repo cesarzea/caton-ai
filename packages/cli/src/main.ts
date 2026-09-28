@@ -76,9 +76,10 @@ try {
       open: () => openVault(configDirectory(process.env), keyDependencies),
     },
     readSecretValue: terminal.secretValue,
-    startWeb: port =>
+    startWeb: (port, sync) =>
       startServer({
         port,
+        sync,
         secretsDirectory: configDirectory(process.env),
         credentials: keyDependencies.credentials,
         connections: () =>

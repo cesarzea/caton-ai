@@ -15,6 +15,8 @@ import type {SecretNeeds} from './secret-list.ts';
 import type {ApiContext} from './api-context.ts';
 import {createSessions} from './sessions.ts';
 import {createStoreHolder} from './store-holder.ts';
+import {createSyncer} from './syncer.ts';
+import type {SyncRunner} from './syncer.ts';
 
 /** Only this address: the interface is never reachable from the network. */
 const LOOPBACK = '127.0.0.1';
@@ -31,6 +33,8 @@ export interface ServerOptions {
   readonly plugins: readonly PluginInfo[];
   /** The instances of the configuration file. */
   readonly configuration: Configuration;
+  /** Syncs connections in the background, with secrets from the open store. */
+  readonly sync: SyncRunner;
   /** The built interface; a placeholder page when `null`. */
   readonly assets: ReadonlyMap<string, Asset> | null;
   /** Unexpected errors, out of band. Request bodies are never logged. */
@@ -120,6 +124,12 @@ async function contextOf(options: ServerOptions): Promise<ApiContext> {
     secretNeeds: options.secretNeeds,
     plugins: options.plugins,
     configuration: options.configuration,
+    syncer: createSyncer({
+      run: options.sync,
+      store,
+      connections: () => options.connections().map(connection => connection.id),
+      log: options.log,
+    }),
   };
 }
 

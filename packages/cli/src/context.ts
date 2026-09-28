@@ -2,6 +2,7 @@ import type {Catalog} from '@caton-ai/instances';
 import type {Ledger, LedgerReader} from '@caton-ai/ledger';
 import type {ServerContext} from '@caton-ai/mcp';
 import type {KeySource, Vault} from '@caton-ai/secrets';
+import type {SyncRunner} from '@caton-ai/server';
 
 import type {CatonConfig, Instance} from './config.ts';
 import type {ConfigFile} from './config-file.ts';
@@ -31,7 +32,10 @@ export interface CommandContext {
     readonly open: () => Promise<Vault>;
   };
   /** Starts the local web interface on the loopback address. */
-  readonly startWeb: (port: number) => Promise<{readonly origin: string; accessLink(): string}>;
+  readonly startWeb: (
+    port: number,
+    sync: SyncRunner,
+  ) => Promise<{readonly origin: string; accessLink(): string}>;
   /** A secret value typed without echo, or piped on stdin. */
   readonly readSecretValue: (question: string) => Promise<string>;
   readonly output: Output;

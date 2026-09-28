@@ -1,4 +1,5 @@
 import {matchDocuments} from '@caton-ai/core';
+import type {Lookup} from '@caton-ai/instances';
 import type {Ledger} from '@caton-ai/ledger';
 import {syncConnection} from '@caton-ai/sync';
 import type {SyncOutcome} from '@caton-ai/sync';
@@ -38,9 +39,16 @@ function linkDocuments(ledger: Ledger, now: Date): void {
   ledger.linkDocuments(matchDocuments(unlinked, ledger.transactions(from)), now);
 }
 
-/** Syncs every configured instance; returns the process exit code. */
-export async function syncCommand(context: CommandContext): Promise<number> {
-  const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
+/**
+ * Syncs the connections named, or all of them when null, reading secrets through `lookup`, then
+ * links documents across all of them. Each outcome is reported as it happens.
+ */
+export async function syncConnections(
+  context: CommandContext,
+  lookup: Lookup,
+  names: readonly string[] | null,
+  onOutcome: (outcome: SyncOutcome) => void = () => undefined,
+): Promise<void> {
   const ledger = context.ledger();
   const prices = context.prices();
   await prices.refresh();
@@ -48,19 +56,40 @@ export async function syncCommand(context: CommandContext): Promise<number> {
     const at = context.now();
     ledger.recordModelCall(callRecord(call, at, prices.price(call.usage, at)));
   };
-  let failures = 0;
-  for (const instance of connections(context)) {
+  const chosen = connections(context).filter(instance => names?.includes(instance.id) ?? true);
+  for (const instance of chosen) {
     const state = stagedState(ledger.connectorState(instance.id));
-    const outcome = await syncConnection({
-      name: instance.id,
-      source: () => context.source(instance, lookup, {onModelCall, state: state.port}),
-      ledger,
-      now: context.now,
-      state: state.staged,
-    });
-    failures += report(context, outcome) ? 0 : 1;
+    onOutcome(
+      await syncConnection({
+        name: instance.id,
+        source: () => context.source(instance, lookup, {onModelCall, state: state.port}),
+        ledger,
+        now: context.now,
+        state: state.staged,
+      }),
+    );
   }
   linkDocuments(ledger, context.now());
   ledger.close();
+}
+
+/** `caton sync [connection…]`: every connection, or the ones named; returns the exit code. */
+export async function syncCommand(
+  context: CommandContext,
+  names: readonly string[],
+): Promise<number> {
+  const known = connections(context).map(instance => instance.id);
+  const unknown = names.filter(name => !known.includes(name));
+  if (unknown.length > 0) {
+    context.output.error(
+      `Unknown connection: ${unknown.join(', ')}. Connections: ${known.join(', ')}`,
+    );
+    return 2;
+  }
+  const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
+  let failures = 0;
+  await syncConnections(context, lookup, names.length === 0 ? null : names, outcome => {
+    failures += report(context, outcome) ? 0 : 1;
+  });
   return failures === 0 ? 0 : 1;
 }

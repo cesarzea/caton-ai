@@ -10,6 +10,8 @@ export interface FakeState {
   readonly configured: InstanceInfo[];
   store: StoreStatus;
   signedIn: boolean;
+  /** Connections the fake server is syncing. */
+  syncing: string[];
 }
 
 /** Records a call to the fake server. */

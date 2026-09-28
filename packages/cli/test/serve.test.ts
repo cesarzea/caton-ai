@@ -60,3 +60,26 @@ describe('connectionStatuses without a ledger', () => {
     ).toEqual(['never']);
   });
 });
+
+describe('caton serve syncing', () => {
+  it('lets the web interface sync connections with the secrets of the open store', async () => {
+    let runner:
+      | ((names: readonly string[], lookup: (key: string) => string | undefined) => Promise<void>)
+      | undefined;
+    const context = {
+      ...testContext({millennium: workingSource, revolut: failingSource}),
+      startWeb: (port: number, sync: NonNullable<typeof runner>) => {
+        runner = sync;
+        return Promise.resolve({
+          origin: `http://127.0.0.1:${String(port)}`,
+          accessLink: () => 'link',
+        });
+      },
+    };
+    await run(['serve'], context);
+    await runner?.(['revolut'], () => undefined);
+
+    expect(context.ledger().lastRun('revolut')?.outcome).toBe('failed');
+    expect(context.ledger().lastRun('millennium')).toBeNull();
+  });
+});

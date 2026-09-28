@@ -94,6 +94,12 @@ export const text = {
     willSave: (name: string) =>
       `Saved encrypted as ${name} and reused by every model of this provider.`,
   },
+  sync: {
+    all: 'Sync all',
+    button: 'Sync',
+    one: (title: string) => `Sync ${title}`,
+    running: 'Syncing…',
+  },
   connections: {
     title: 'Connections',
     empty: 'No connections configured yet.',

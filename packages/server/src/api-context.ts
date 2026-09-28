@@ -6,6 +6,7 @@ import type {Configuration} from './instances.ts';
 import type {SecretNeeds} from './secret-list.ts';
 import type {Sessions} from './sessions.ts';
 import type {StoreHolder} from './store-holder.ts';
+import type {Syncer} from './syncer.ts';
 
 export interface ApiContext {
   readonly sessions: Sessions;
@@ -14,6 +15,7 @@ export interface ApiContext {
   readonly secretNeeds: () => SecretNeeds;
   readonly plugins: readonly PluginInfo[];
   readonly configuration: Configuration;
+  readonly syncer: Syncer;
 }
 
 export type Handler = (

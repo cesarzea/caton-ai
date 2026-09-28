@@ -93,10 +93,22 @@ const LLM: PluginInfo = {
   ],
 };
 
+/** Syncing marks the connections as syncing until the test clears them. */
+function syncOf(api: FakeState, record: Record): Api['sync'] {
+  return async connections => {
+    await record('sync', connections);
+    api.syncing = [...(connections ?? ['millennium', 'amex'])];
+    return api.syncing;
+  };
+}
+
 export function configurationOf(
   api: FakeState,
   record: Record,
-): Pick<Api, 'plugins' | 'instances' | 'createInstance' | 'updateInstance' | 'removeInstance'> {
+): Pick<
+  Api,
+  'plugins' | 'instances' | 'createInstance' | 'updateInstance' | 'removeInstance' | 'sync'
+> {
   return {
     plugins: () => Promise.resolve([...PLUGINS, LLM]),
     instances: () => Promise.resolve(api.configured),
@@ -117,5 +129,6 @@ export function configurationOf(
     removeInstance: async id => {
       await record('removeInstance', id);
     },
+    sync: syncOf(api, record),
   };
 }

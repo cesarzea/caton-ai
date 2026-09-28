@@ -5,6 +5,7 @@ import {
   pluginListSchema,
   secretListSchema,
   statusSchema,
+  syncStartedSchema,
 } from '@caton-ai/api';
 import type {
   InitStoreRequest,
@@ -81,6 +82,11 @@ const configurationApi = {
     send('PUT', `/api/instances/${encodeURIComponent(id)}`, request).then(done),
   removeInstance: (id: string): Promise<void> =>
     send('DELETE', `/api/instances/${encodeURIComponent(id)}`).then(done),
+  /** Starts syncing the connections named, or every one; returns what is being synced. */
+  sync: async (connections?: readonly string[]): Promise<string[]> =>
+    syncStartedSchema.parse(
+      await json('POST', '/api/sync', connections === undefined ? {} : {connections}),
+    ).syncing,
 };
 
 export type Api = typeof httpApi & typeof configurationApi;

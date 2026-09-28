@@ -9,10 +9,15 @@ import {Notice} from './Layout.tsx';
 import {Models} from './Models.tsx';
 import {SharedSecrets} from './SharedSecrets.tsx';
 
-type Props = Readonly<{api: Api; connections: readonly ConnectionStatus[]; onChanged: () => void}>;
+type Props = Readonly<{
+  api: Api;
+  connections: readonly ConnectionStatus[];
+  syncing: readonly string[];
+  onChanged: () => void;
+}>;
 
 /** The connections, the language models and the shared secrets, from one load so all agree. */
-export function Configured({api, connections, onChanged}: Props): ReactNode {
+export function Configured({api, connections, syncing, onChanged}: Props): ReactNode {
   const {data, error, refresh} = useConfiguration(api);
   const changed = (): void => {
     void refresh();
@@ -28,7 +33,13 @@ export function Configured({api, connections, onChanged}: Props): ReactNode {
   }
   return (
     <>
-      <Instances api={api} data={data} connections={connections} onChanged={changed} />
+      <Instances
+        api={api}
+        data={data}
+        connections={connections}
+        syncing={syncing}
+        onChanged={changed}
+      />
       <Models api={api} data={data} onChanged={changed} />
       <SharedSecrets api={api} data={data} onChanged={changed} />
       <Notice message={error} />

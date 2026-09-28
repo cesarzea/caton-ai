@@ -84,7 +84,7 @@ function sessionOf(api: FakeState, record: Record): Pick<Api, 'signIn' | 'status
     },
     status: () =>
       api.signedIn
-        ? Promise.resolve({store: api.store, connections: CONNECTIONS})
+        ? Promise.resolve({store: api.store, connections: CONNECTIONS, syncing: api.syncing})
         : Promise.reject(new ApiError(401, 'Sign in')),
   };
 }
@@ -110,6 +110,7 @@ export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
     ],
     store: {state: 'missing', keySource: null, error: null, ...store},
     signedIn: true,
+    syncing: [],
   };
   return Object.assign(api, {
     ...sessionOf(api, record),

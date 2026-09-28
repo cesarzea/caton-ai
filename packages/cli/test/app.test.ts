@@ -146,3 +146,16 @@ describe('caton documents linked and without amount', () => {
     expect(context.lines.some(line => /€160\.00\s+to review\s+linked$/u.test(line))).toBe(true);
   });
 });
+
+describe('caton sync of some connections', () => {
+  it('syncs only the ones named, and refuses unknown names', async () => {
+    const context = testContext({millennium: workingSource, revolut: failingSource});
+
+    expect(await run(['sync', 'millennium'], context)).toBe(0);
+    expect(context.lines).toEqual(['✓ millennium: 1 account(s), 1 movement(s)']);
+    expect(await run(['sync', 'nobody'], context)).toBe(2);
+    expect(context.errors.at(-1)).toBe(
+      'Unknown connection: nobody. Connections: millennium, revolut',
+    );
+  });
+});

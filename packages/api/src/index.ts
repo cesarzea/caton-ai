@@ -41,7 +41,20 @@ export const connectionStatusSchema = z.object({
 export const statusSchema = z.object({
   store: storeStatusSchema,
   connections: z.array(connectionStatusSchema),
+  /** Connections being synced right now. */
+  syncing: z.array(z.string()),
 });
+
+/** Syncs these connections, or all of them when absent. */
+export const syncRequestSchema = z.object({
+  connections: z
+    .array(z.string().regex(/^[a-z0-9][a-z0-9-]*$/u))
+    .min(1)
+    .max(100)
+    .optional(),
+});
+
+export const syncStartedSchema = z.object({syncing: z.array(z.string())});
 
 export const sessionRequestSchema = z.object({token: z.string().min(1).max(200)});
 
@@ -74,6 +87,7 @@ export const setSecretRequestSchema = z.object({value: z.string().min(1).max(65_
 export const errorSchema = z.object({error: z.string()});
 
 export type Status = z.infer<typeof statusSchema>;
+export type SyncRequest = z.infer<typeof syncRequestSchema>;
 export type StoreStatus = z.infer<typeof storeStatusSchema>;
 export type ConnectionStatus = z.infer<typeof connectionStatusSchema>;
 export type InitStoreRequest = z.infer<typeof initStoreRequestSchema>;

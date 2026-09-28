@@ -13,7 +13,8 @@ import type {CommandContext} from './context.ts';
 const USAGE = [
   'Usage: caton <command>',
   '',
-  '  sync             Fetch accounts, movements and balances from every connection',
+  '  sync [connection…]  Fetch accounts, movements, balances and documents from every',
+  '                   connection, or only the ones named',
   '  accounts         List accounts with their latest balance',
   '  spend [months]   Spending per month, cash basis (default: 3 months): outflows except card',
   '                   statement payments, plus card charges only documents report; transfers',
@@ -31,7 +32,7 @@ const USAGE = [
 type Command = (context: CommandContext, args: readonly string[]) => number | Promise<number>;
 
 const COMMANDS = new Map<string, Command>([
-  ['sync', context => syncCommand(context)],
+  ['sync', (context, args) => syncCommand(context, args)],
   ['accounts', context => accountsCommand(context)],
   ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
   ['documents', (context, [days]) => documentsCommand(context, daysArgument(days))],

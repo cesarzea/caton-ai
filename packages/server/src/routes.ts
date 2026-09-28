@@ -1,6 +1,6 @@
 import type {IncomingMessage, ServerResponse} from 'node:http';
 
-import {sessionRequestSchema} from '@caton-ai/api';
+import {sessionRequestSchema, syncRequestSchema} from '@caton-ai/api';
 
 import type {ApiContext, Handler} from './api-context.ts';
 import type {StoreHolder} from './store-holder.ts';
@@ -70,6 +70,11 @@ const instanceList: Handler = (_request, response, {configuration}) => {
 const newInstance: Handler = (request, response, context) =>
   createInstance(request, response, context);
 
+const startSync: Handler = async (request, response, {syncer}) => {
+  const {connections} = await jsonBody(request, syncRequestSchema);
+  sendJson(response, 202, {syncing: [...(await syncer.start(connections ?? null))]});
+};
+
 function storeRouteFor(route: string): Handler | undefined {
   switch (route) {
     case 'GET /api/status':
@@ -82,6 +87,8 @@ function storeRouteFor(route: string): Handler | undefined {
       return lockStore;
     case 'GET /api/secrets':
       return secretList;
+    case 'POST /api/sync':
+      return startSync;
     default:
       return undefined;
   }
