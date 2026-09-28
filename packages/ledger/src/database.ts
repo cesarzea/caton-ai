@@ -44,7 +44,7 @@ export function openDatabaseReadOnly(path: string): DatabaseSync {
     throw new LedgerUnavailableError(
       version < MIGRATIONS.length
         ? 'The ledger uses an older schema: run `caton sync` to upgrade it'
-        : 'The ledger was written by a newer version of Catón AI: upgrade it',
+        : 'The ledger was written by a newer version of Catón AI: restart the program running this one, such as the AI assistant that started caton mcp, so that it runs the new version',
     );
   }
   return database;
