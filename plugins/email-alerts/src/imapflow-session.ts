@@ -13,7 +13,7 @@ export interface ImapServer {
 /** The part of imapflow the session uses. */
 export type ImapClient = Pick<
   ImapFlow,
-  'connect' | 'list' | 'mailboxOpen' | 'search' | 'fetch' | 'logout' | 'on'
+  'connect' | 'list' | 'mailboxOpen' | 'search' | 'fetch' | 'logout' | 'on' | 'capabilities'
 >;
 
 async function* fetchRaw(
@@ -32,12 +32,22 @@ async function* fetchRaw(
   }
 }
 
-/** The IMAP search: any of the words in the text, after a UID or since a date. */
-function searchObject({since, afterUid, words}: SearchQuery): SearchObject {
+/**
+ * The IMAP search: any of the words in the text, after a UID or since a date, from a sender. A
+ * server that classifies mail (Gmail's `X-GM-EXT-1`) also leaves out promotions and social mail.
+ */
+function searchObject(
+  client: ImapClient,
+  {since, afterUid, words, from}: SearchQuery,
+): SearchObject {
   return {
     or: words.map(word => ({text: word})),
     ...(afterUid === undefined ? {} : {uid: `${String(afterUid + 1)}:*`}),
     ...(since === undefined ? {} : {since}),
+    ...(from === undefined ? {} : {from}),
+    ...(client.capabilities.has('X-GM-EXT-1')
+      ? {gmraw: '-category:promotions -category:social'}
+      : {}),
   };
 }
 
@@ -51,7 +61,7 @@ function sessionOver(client: ImapClient): ImapSession {
     },
     search: async query => {
       try {
-        const found = await client.search(searchObject(query), {uid: true});
+        const found = await client.search(searchObject(client, query), {uid: true});
         return Array.isArray(found) ? found : [];
       } catch (error) {
         throw new Error(`the IMAP search failed: ${serverSaid(error)}`, {cause: error});

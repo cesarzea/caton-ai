@@ -33,6 +33,7 @@ export const CHARGE = {
   period_end: null,
   due_date: null,
   reference: null,
+  account: null,
 };
 
 const USAGE = {

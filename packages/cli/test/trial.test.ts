@@ -16,6 +16,7 @@ const doc = (id: string, minorUnits: number, verified = true): FinancialDocument
   periodEnd: null,
   dueOn: null,
   reference: null,
+  account: null,
   verified,
   origin: 'email',
 });

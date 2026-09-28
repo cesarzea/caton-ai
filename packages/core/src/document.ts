@@ -31,6 +31,8 @@ export interface FinancialDocument {
   readonly dueOn: string | null;
   /** Its reference, such as an invoice number. */
   readonly reference: string | null;
+  /** The card or account it is about, as the document writes it, such as `ending in 1234`. */
+  readonly account: string | null;
   /** Whether its origin and fields were checked, or it waits for the user's review. */
   readonly verified: boolean;
   /** Where it came from, for the user, such as the sender and subject of an email. */

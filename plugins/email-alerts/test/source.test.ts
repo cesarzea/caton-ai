@@ -14,8 +14,7 @@ function source(overrides: Partial<Options>) {
     since: new Date('2026-07-01T00:00:00Z'),
     ownAddress: 'me@my-company.example',
     authServer: AUTH_SERVER,
-    cardDomains: [],
-    cardCurrency: 'EUR',
+    senders: [],
     maxPerSync: 50,
     ...overrides,
   });
@@ -37,30 +36,12 @@ describe('reading email with a model', () => {
         periodEnd: null,
         dueOn: null,
         reference: null,
+        account: null,
         verified: true,
         origin: 'email from no-reply@alerts.example-card.com: Cargo en tu Tarjeta',
       },
     ]);
     expect(state.value).toEqual({uidValidity: 9, lastUid: 1});
-  });
-});
-
-describe('reading card alerts', () => {
-  it('makes movements only for the cards listed by their authenticated sender', async () => {
-    const card = source({cardDomains: ['example-card.com']});
-    const [account] = await card.listAccounts();
-
-    expect(account).toMatchObject({id: 'email:example-card.com', currency: 'EUR'});
-    expect(
-      account === undefined ? [] : await card.listTransactions(account, '2026-09-01'),
-    ).toMatchObject([
-      {
-        amount: {minorUnits: -123_456},
-        counterparty: 'EXAMPLE STORE MADRID',
-        bookingDate: '2026-09-19',
-      },
-    ]);
-    expect(await source({}).listAccounts()).toEqual([]);
   });
 });
 
@@ -70,9 +51,6 @@ describe('what the model is not trusted with', () => {
     const [document] = (await source({model: fakeModel([invented])}).listDocuments?.('')) ?? [];
 
     expect(document).toMatchObject({verified: false, amount: {minorUnits: 99_900}});
-    const card = source({model: fakeModel([invented]), cardDomains: ['example-card.com']});
-    const [account] = await card.listAccounts();
-    expect(account === undefined ? [] : await card.listTransactions(account, '')).toEqual([]);
   });
 
   it('never sends own, unauthenticated or amount-less email, and drops what is not money', async () => {
@@ -134,23 +112,24 @@ describe('reading email in several syncs', () => {
   });
 });
 
-describe('reading refunds and notices of email-only cards', () => {
-  it('turns a refund into money back, and a renewal notice into a document only', async () => {
-    const refund = {...CHARGE, kind: 'refund'};
-    const renewal = {...CHARGE, kind: 'renewal'};
-    const mailbox = fakeMailbox([message(), message({messageId: '<2@x>'})]);
+describe('documents from email', () => {
+  it('never become movements, and keep the card only as the email writes it', async () => {
     const card = source({
-      mailbox,
-      model: fakeModel([refund, renewal]),
-      cardDomains: ['example-card.com'],
+      model: fakeModel([
+        {...CHARGE, account: 'ending in 4321'},
+        {...CHARGE, account: 'ending in 9999'},
+      ]),
+      mailbox: fakeMailbox([
+        message({text: `${message().text ?? ''}Tarjeta ending in 4321`}),
+        message({messageId: '<2@x>'}),
+      ]),
     });
-    const [account] = await card.listAccounts();
-    const movements = account === undefined ? [] : await card.listTransactions(account, '');
 
-    expect(movements.map(movement => movement.amount.minorUnits)).toEqual([123_456]);
-    expect((await card.listDocuments?.(''))?.map(document => document.kind)).toEqual([
-      'refund',
-      'renewal',
+    expect(await card.listAccounts()).toEqual([]);
+    expect(await card.listTransactions({} as never, '')).toEqual([]);
+    expect((await card.listDocuments?.(''))?.map(document => document.account)).toEqual([
+      'ending in 4321',
+      null,
     ]);
   });
 });

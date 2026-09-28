@@ -106,4 +106,7 @@ export const MIGRATIONS: readonly string[] = [
     updated_at TEXT NOT NULL
   ) STRICT;
   `,
+  `
+  ALTER TABLE documents ADD COLUMN account TEXT;
+  `,
 ];

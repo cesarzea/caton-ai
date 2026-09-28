@@ -13,6 +13,7 @@ const receipt = (overrides: Partial<FinancialDocument>): FinancialDocument => ({
   periodEnd: null,
   dueOn: null,
   reference: null,
+  account: null,
   verified: true,
   origin: 'email from no_reply@email.apple.com',
   ...overrides,

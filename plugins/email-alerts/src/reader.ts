@@ -1,8 +1,8 @@
-import type {FinancialDocument, LanguageModel, Transaction} from '@caton-ai/core';
+import type {FinancialDocument, LanguageModel} from '@caton-ai/core';
 
 import {contentOf, extractFrom} from './extraction.ts';
 import type {Mailbox, MailboxCursor, MailboxMessage} from './imap.ts';
-import {itemsOf} from './items.ts';
+import {documentOf} from './items.ts';
 import {prefilter, SEARCH_WORDS} from './prefilter.ts';
 import {bodyText} from './text.ts';
 
@@ -14,14 +14,14 @@ export interface ReadOptions {
   readonly since: Date;
   readonly ownAddress: string;
   readonly authServer: string;
-  readonly cardDomains: readonly string[];
+  /** Sender domains to read, such as `example.com`; every sender when empty. */
+  readonly senders: readonly string[];
   /** Emails sent to the model in one sync at most; the rest wait for the next one. */
   readonly maxPerSync: number;
 }
 
 export interface ReadResult {
   readonly documents: FinancialDocument[];
-  readonly transactions: Transaction[];
   /** How far the mailbox was read without a gap, or null when nothing needs remembering. */
   readonly cursor: MailboxCursor | null;
   /** Why the read stopped early; what was read before is still valid. */
@@ -61,22 +61,19 @@ function noModel(candidates: readonly Candidate[], since: Date): Error {
   );
 }
 
-type Found = Pick<ReadResult, 'documents' | 'transactions'>;
+type Found = Pick<ReadResult, 'documents'>;
 
 /** Sends one email to the model and keeps what it yields; the failure, if it failed. */
 async function readOne(
   model: LanguageModel,
   {message, text, domain}: Candidate & {readonly domain: string},
-  options: ReadOptions,
   found: Found,
 ): Promise<string | null> {
   try {
     const extracted = await extractFrom(model, contentOf(message, text));
-    const context = {message, text, senderDomain: domain, cardDomains: options.cardDomains};
-    const items = itemsOf(extracted, context);
-    if (items !== null) {
-      found.documents.push(items.document);
-      found.transactions.push(...(items.transaction === null ? [] : [items.transaction]));
+    const document = documentOf(extracted, {message, text, senderDomain: domain});
+    if (document !== null) {
+      found.documents.push(document);
     }
     return null;
   } catch (caught) {
@@ -92,7 +89,7 @@ async function walk(
   options: ReadOptions,
   startUid: number,
 ): Promise<Found & {readonly lastUid: number; readonly error: string | null}> {
-  const found: Found = {documents: [], transactions: []};
+  const found: Found = {documents: []};
   let lastUid = startUid;
   let sent = 0;
   for (const candidate of candidates) {
@@ -102,7 +99,7 @@ async function walk(
         break;
       }
       sent += 1;
-      const error = await readOne(model, {...candidate, domain}, options, found);
+      const error = await readOne(model, {...candidate, domain}, found);
       if (error !== null) {
         return {...found, lastUid, error};
       }
@@ -119,7 +116,10 @@ async function walk(
  */
 export async function readMailbox(options: ReadOptions): Promise<ReadResult> {
   const {cursor, since, model} = options;
-  const {uidValidity, messages} = await options.mailbox.newMessages(cursor, since, SEARCH_WORDS);
+  const {uidValidity, messages} = await options.mailbox.newMessages(cursor, since, {
+    words: SEARCH_WORDS,
+    senders: options.senders,
+  });
   const candidates = candidatesOf(messages, options);
   if (model === undefined) {
     throw noModel(candidates, since);

@@ -26,6 +26,8 @@ review everything since the last run.
     not costs.
   - The first run looks back a configurable number of days, 90 by default.
   - The mailbox stays read-only, as in ADR 0015.
+- **The server filters first** when it can: a server that classifies mail (Gmail) leaves out
+  promotions and social mail.
 - **A local pre-filter comes first.** Only authenticated senders (DKIM/DMARC) with an amount and
   currency, plus money-related words in several languages, pass. An unauthenticated email
   never reaches a model. Most email never leaves the
@@ -48,9 +50,12 @@ review everything since the last run.
   - which card or account an email speaks for comes from its authenticated sender domain,
     never from what the model read.
 - **Where results go** (with [ADR 0016](0016-financial-documents-and-reconciliation.md)):
-  - Only a charge or refund alert for a card with no other feed, such as American Express,
-    becomes a movement. The user lists those cards by the sender domain of their alerts, such
-    as `americanexpress.com`.
+  - Emails never become movements: every result is a document, with the card or account as
+    the email writes it. A verified charge that no account reports is still counted as spend,
+    grouped by that card, and a card's statement is reconciled with the payments that settle
+    it (ADR 0016). Nothing is configured per card, issuer or currency.
+  - A connection may read only some senders; empty, it reads every sender. Several connections
+    on one mailbox keep each email once.
   - A receipt paid through a bank account is matched to the bank's charge and adds its
     details; it is never counted twice.
   - Anything else is a document to review.

@@ -27,6 +27,7 @@ const SCHEMA = {
     'period_end',
     'due_date',
     'reference',
+    'account',
   ],
   properties: {
     kind: {type: 'string', enum: KINDS},
@@ -39,6 +40,7 @@ const SCHEMA = {
     period_end: nullableString,
     due_date: nullableString,
     reference: nullableString,
+    account: nullableString,
   },
 };
 
@@ -49,6 +51,7 @@ const INSTRUCTIONS = [
   'Use "none" for anything else: promotions, newsletters, shipping updates, security notices, and invoices or payment requests the user sent to others.',
   'issuer: the merchant or company, written exactly as in the email. amount_written: the total charged, refunded or due, copied character by character with its currency symbol or code as written. currency: its ISO 4217 code.',
   'date_written: the date of the charge or document exactly as written; date: the same date as YYYY-MM-DD. period_start and period_end: the service period as YYYY-MM-DD, due_date: when a payment is due, reference: an invoice or order number, each only when the email states it.',
+  'account: the card or account it concerns, exactly as written, such as "ending in 1234"; null if not stated.',
   'Use null for anything the email does not state. Never guess.',
 ].join('\n');
 
@@ -63,6 +66,7 @@ const answerSchema = z.object({
   period_end: z.string().nullable(),
   due_date: z.string().nullable(),
   reference: z.string().nullable(),
+  account: z.string().nullable(),
 });
 
 export type Extracted = z.infer<typeof answerSchema>;

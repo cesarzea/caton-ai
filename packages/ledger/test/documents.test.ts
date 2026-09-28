@@ -15,6 +15,7 @@ const receipt: FinancialDocument = {
   periodEnd: '2026-10-09',
   dueOn: null,
   reference: 'MQ12345',
+  account: null,
   verified: true,
   origin: 'email from no_reply@email.apple.com: Your receipt',
 };

@@ -14,6 +14,14 @@ export interface SearchQuery {
   readonly afterUid?: number;
   /** Words any of which the message text must contain, searched by the server. */
   readonly words: readonly string[];
+  /** A sender whose address contains this, such as a domain. */
+  readonly from?: string;
+}
+
+/** What to look for: money words, and optionally only some senders (every sender when empty). */
+export interface MailFilter {
+  readonly words: readonly string[];
+  readonly senders: readonly string[];
 }
 
 /** The few IMAP operations the connector needs, so that the protocol client can be replaced. */
@@ -44,7 +52,7 @@ export interface Mailbox {
   newMessages(
     cursor: MailboxCursor | null,
     since: Date,
-    words: readonly string[],
+    filter: MailFilter,
   ): Promise<{readonly uidValidity: number; readonly messages: readonly MailboxMessage[]}>;
 }
 
@@ -70,18 +78,37 @@ async function fetchAll(session: ImapSession, uids: readonly number[]): Promise<
   return messages.sort((a, b) => a.uid - b.uid);
 }
 
+/** One search per sender, or a single one for every sender; UIDs found by several are kept once. */
+async function searchAll(
+  session: ImapSession,
+  from: Pick<SearchQuery, 'since' | 'afterUid'>,
+  {words, senders}: MailFilter,
+): Promise<number[]> {
+  const queries =
+    senders.length === 0
+      ? [{...from, words}]
+      : senders.map(sender => ({...from, words, from: sender}));
+  const found = new Set<number>();
+  for (const query of queries) {
+    (await session.search(query)).forEach(uid => found.add(uid));
+  }
+  return [...found];
+}
+
 /** A mailbox read over IMAP, strictly read-only: nothing is marked as read, moved or deleted. */
 export function imapMailbox(options: ImapMailboxOptions): Mailbox {
   return {
-    newMessages: async (cursor, since, words) => {
+    newMessages: async (cursor, since, filter) => {
       const session = await options.connect();
       try {
         const {uidValidity} = await session.openReadOnly(
           await folderToRead(session, options.folder),
         );
         const after = cursor?.uidValidity === uidValidity ? cursor.lastUid : null;
-        const found = await session.search(
-          after === null ? {since, words} : {afterUid: after, words},
+        const found = await searchAll(
+          session,
+          after === null ? {since} : {afterUid: after},
+          filter,
         );
         // `UID n:*` also returns the last message when nothing is newer.
         const uids = found.filter(uid => after === null || uid > after).sort((a, b) => a - b);

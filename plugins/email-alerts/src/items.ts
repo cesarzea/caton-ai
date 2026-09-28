@@ -1,19 +1,10 @@
-import {createHash} from 'node:crypto';
-
-import {moneyFromDecimal, negateMoney} from '@caton-ai/core';
-import type {FinancialDocument, Money, Transaction} from '@caton-ai/core';
+import {moneyFromDecimal} from '@caton-ai/core';
+import type {FinancialDocument, Money} from '@caton-ai/core';
 
 import {currencyOf, parseWrittenAmount} from './amount.ts';
-import {belongsTo} from './authenticity.ts';
 import {parseDate} from './date.ts';
 import type {Extracted} from './extraction.ts';
 import type {MailMessage} from './message.ts';
-
-/** What one email yields: its document, and a movement when it is an alert of an email-only card. */
-export interface ReadItems {
-  readonly document: FinancialDocument;
-  readonly transaction: Transaction | null;
-}
 
 const squeeze = (text: string): string => text.replaceAll(/\s+/gu, ' ').toLowerCase();
 
@@ -25,7 +16,6 @@ function written(value: string | null, text: string): boolean {
 const isoDate = (value: string | null): string | null =>
   value === null ? null : parseDate(value, 'YYYY-MM-DD');
 
-/** The amount parsed here from what is written; the currency must be written too. */
 /** The currency written in the amount, else the model's code if the email writes it. */
 function writtenCurrency(
   inAmount: string | null,
@@ -36,6 +26,7 @@ function writtenCurrency(
   return inAmount ?? (code !== null && text.includes(code) ? code : null);
 }
 
+/** The amount parsed here from what is written; the currency must be written too. */
 function amountOf(extracted: Extracted, text: string): Money | null {
   const parsed =
     extracted.amount_written === null ? null : parseWrittenAmount(extracted.amount_written);
@@ -50,49 +41,17 @@ function amountOf(extracted: Extracted, text: string): Money | null {
   }
 }
 
-const hash = (value: string): string =>
-  createHash('sha256').update(value).digest('hex').slice(0, 16);
-
-/** The account of an email-only card, named by the sender domain of its alerts. */
-export const cardAccountId = (domain: string): string => `email:${domain}`;
-
 export interface ItemContext {
   readonly message: MailMessage;
   readonly text: string;
   readonly senderDomain: string;
-  /** Sender domains of cards that have no other feed, such as `americanexpress.com`. */
-  readonly cardDomains: readonly string[];
-}
-
-function movementOf(document: FinancialDocument, context: ItemContext): Transaction | null {
-  const card = context.cardDomains.find(domain => belongsTo(context.senderDomain, domain));
-  const {amount} = document;
-  if (card === undefined || amount === null || !document.verified) {
-    return null;
-  }
-  if (document.kind !== 'charge' && document.kind !== 'refund') {
-    return null;
-  }
-  const accountId = cardAccountId(card);
-  return {
-    id: `${accountId}:${hash(context.message.messageId)}`,
-    accountId,
-    status: 'booked',
-    bookingDate: document.issuedOn,
-    valueDate: null,
-    transactionDate: document.issuedOn,
-    amount: document.kind === 'refund' ? amount : negateMoney(amount),
-    counterparty: document.issuer,
-    description: context.message.subject,
-    merchantCategoryCode: null,
-  };
 }
 
 /**
  * The document an email is, verified only when amount, issuer and date are all written in it as
- * the model copied them; which card it feeds comes from the authenticated sender, never the model.
+ * the model copied them. The card or account is kept only when written as copied.
  */
-export function itemsOf(extracted: Extracted, context: ItemContext): ReadItems | null {
+export function documentOf(extracted: Extracted, context: ItemContext): FinancialDocument | null {
   const {message, text} = context;
   if (extracted.kind === 'none') {
     return null;
@@ -102,7 +61,7 @@ export function itemsOf(extracted: Extracted, context: ItemContext): ReadItems |
     written(extracted.amount_written, text) &&
     written(extracted.date_written, text) &&
     (written(extracted.issuer, text) || written(extracted.issuer, context.senderDomain));
-  const document: FinancialDocument = {
+  return {
     id: `email:${message.messageId}`,
     kind: extracted.kind,
     issuer: extracted.issuer ?? context.senderDomain,
@@ -112,8 +71,8 @@ export function itemsOf(extracted: Extracted, context: ItemContext): ReadItems |
     periodEnd: isoDate(extracted.period_end),
     dueOn: isoDate(extracted.due_date),
     reference: extracted.reference,
+    account: written(extracted.account, text) ? extracted.account : null,
     verified: grounded && amount !== null,
     origin: `email from ${message.from}: ${message.subject}`,
   };
-  return {document, transaction: movementOf(document, context)};
 }

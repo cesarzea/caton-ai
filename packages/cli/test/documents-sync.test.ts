@@ -17,6 +17,7 @@ const RECEIPT: FinancialDocument = {
   periodEnd: null,
   dueOn: null,
   reference: null,
+  account: null,
   verified: true,
   origin: 'email',
 };

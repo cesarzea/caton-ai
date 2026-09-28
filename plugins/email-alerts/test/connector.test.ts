@@ -12,10 +12,7 @@ const declared: Record<string, unknown> = Object.fromEntries(
     .filter(spec => spec.kind !== 'model' && spec.kind !== 'effort')
     .map(spec => {
       const values = {number: 993, list: ['example-card.com']} as Record<string, unknown>;
-      return [
-        spec.key,
-        spec.key === 'card-currency' ? 'EUR' : (values[spec.kind] ?? `${spec.key}-value`),
-      ];
+      return [spec.key, values[spec.kind] ?? `${spec.key}-value`];
     }),
 );
 
@@ -36,9 +33,7 @@ describe('emailAlertsConnector contract', () => {
   it('builds a source from exactly the variables it declares', async () => {
     const source = emailAlertsConnector.createSource(declared, environment);
 
-    expect(await source.listAccounts()).toMatchObject([
-      {id: 'email:example-card.com', source: 'email-alerts'},
-    ]);
+    expect(await source.listAccounts()).toEqual([]);
   });
 });
 
@@ -48,7 +43,7 @@ describe('emailAlertsConnector variables', () => {
       emailAlertsConnector.createSource({...declared, ...overrides}, environment);
 
     expect(() =>
-      build({'imap-password': '', 'imap-port': 'SECRETVALUE', 'card-currency': 'euro'}),
-    ).toThrow('Invalid email variables: imap-port, imap-password, card-currency');
+      build({'imap-password': '', 'imap-port': 'SECRETVALUE', senders: 'a.com'}),
+    ).toThrow('Invalid email variables: imap-port, imap-password, senders');
   });
 });

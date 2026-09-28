@@ -15,12 +15,13 @@ interface Recorded {
   readonly calls: unknown[][];
 }
 
-function fakeClient(recorded: Recorded, found: number[] | false): ImapClient {
+function fakeClient(recorded: Recorded, found: number[] | false, gmail = false): ImapClient {
   const record = (...call: unknown[]): Promise<void> => {
     recorded.calls.push(call);
     return Promise.resolve();
   };
   const client = {
+    capabilities: new Map<string, boolean>(gmail ? [['X-GM-EXT-1', true]] : []),
     connect: () => record('connect'),
     on: () => client,
     list: () => Promise.resolve([{path: 'INBOX'}, {path: '[Gmail]/All', specialUse: '\\All'}]),
@@ -124,5 +125,24 @@ describe('connectImapFlow failures', () => {
     await expect(connectImapFlow(server, () => plain)).rejects.toThrow(
       'the IMAP server refused the connection: timeout',
     );
+  });
+});
+
+describe('connectImapFlow on a server that classifies mail', () => {
+  it('leaves out promotions and social mail, and searches one sender', async () => {
+    const recorded: Recorded = {options: [], calls: []};
+    const opened = await connectImapFlow(server, () => fakeClient(recorded, [1], true));
+    await opened.search({afterUid: 1, words: ['receipt'], from: 'example.com'});
+
+    expect(recorded.calls.at(-1)).toEqual([
+      'search',
+      {
+        or: [{text: 'receipt'}],
+        uid: '2:*',
+        from: 'example.com',
+        gmraw: '-category:promotions -category:social',
+      },
+      {uid: true},
+    ]);
   });
 });

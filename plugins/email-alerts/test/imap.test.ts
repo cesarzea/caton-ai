@@ -10,9 +10,10 @@ interface FakeSession extends ImapSession {
   readonly calls: string[];
 }
 
-function describeSearch({since, afterUid, words}: SearchQuery): string {
-  const from = since === undefined ? `after ${String(afterUid)}` : since.toISOString().slice(0, 10);
-  return `search ${from} ${words.join('|')}`;
+function describeSearch({since, afterUid, words, from}: SearchQuery): string {
+  const start =
+    since === undefined ? `after ${String(afterUid)}` : since.toISOString().slice(0, 10);
+  return `search ${start} ${words.join('|')}${from === undefined ? '' : ` from ${from}`}`;
 }
 
 const raw = (uid: number) => ({
@@ -50,7 +51,7 @@ function fakeSession(
 }
 
 const since = new Date('2026-09-01T00:00:00Z');
-const words = ['receipt', 'factura'];
+const filter = {words: ['receipt', 'factura'], senders: []};
 const connect = (session: FakeSession, folder?: string) =>
   imapMailbox({connect: () => Promise.resolve(session), folder});
 
@@ -63,7 +64,7 @@ describe('imapMailbox', () => {
       ],
       [7, 3],
     );
-    const read = await connect(session).newMessages(null, since, words);
+    const read = await connect(session).newMessages(null, since, filter);
 
     expect(read.uidValidity).toBe(9);
     expect(read.messages.map(item => [item.uid, item.message.messageId])).toEqual([
@@ -85,7 +86,7 @@ describe('imapMailbox with a cursor', () => {
     const read = await connect(session, 'Cards').newMessages(
       {uidValidity: 9, lastUid: 12},
       since,
-      words,
+      filter,
     );
 
     expect(read.messages).toEqual([]);
@@ -98,11 +99,30 @@ describe('imapMailbox with a cursor', () => {
 
   it('starts again from the date when the folder was renumbered', async () => {
     const session = fakeSession([], []);
-    await connect(session).newMessages({uidValidity: 8, lastUid: 12}, since, words);
+    await connect(session).newMessages({uidValidity: 8, lastUid: 12}, since, filter);
 
     expect(session.calls).toEqual([
       'open-read-only INBOX',
       'search 2026-09-01 receipt|factura',
+      'close',
+    ]);
+  });
+});
+
+describe('imapMailbox for some senders', () => {
+  it('searches each sender, keeping a message found twice once', async () => {
+    const session = fakeSession([], [5]);
+    const read = await connect(session).newMessages(null, since, {
+      words: ['receipt'],
+      senders: ['a.com', 'b.com'],
+    });
+
+    expect(read.messages.map(item => item.uid)).toEqual([5]);
+    expect(session.calls).toEqual([
+      'open-read-only INBOX',
+      'search 2026-09-01 receipt from a.com',
+      'search 2026-09-01 receipt from b.com',
+      'fetch 5',
       'close',
     ]);
   });

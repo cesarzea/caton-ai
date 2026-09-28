@@ -40,7 +40,7 @@ describe('ledger file', () => {
     expect(reopened.transactions('2026-01-01')).toHaveLength(1);
     reopened.close();
     const raw = new DatabaseSync(path);
-    expect(raw.prepare('PRAGMA user_version').get()).toEqual({user_version: 3});
+    expect(raw.prepare('PRAGMA user_version').get()).toEqual({user_version: 4});
     raw.close();
   });
 });

@@ -15,11 +15,7 @@ const variablesSchema = z.object({
   'auth-server': z.string().min(1),
   'backfill-days': z.number().int().min(1).max(3_650),
   'max-per-sync': z.number().int().min(1).max(10_000),
-  'card-senders': z.array(z.string().min(1)).default([]),
-  'card-currency': z
-    .string()
-    .regex(/^[A-Z]{3}$/u)
-    .default('EUR'),
+  senders: z.array(z.string().min(1)).default([]),
 });
 
 const DAY_MS = 86_400_000;
@@ -31,7 +27,7 @@ export const emailAlertsConnector: Connector = {
     version: '0.0.0',
     title: 'Email',
     description:
-      'Receipts, invoices, renewals, cancellations and card alerts from any sender, read-only over IMAP.',
+      'Any email about money, such as receipts, invoices, renewals, cancellations, statements and card alerts, read-only over IMAP.',
     network: ['variable:imap-host'],
     variables: VARIABLES,
   },
@@ -58,8 +54,7 @@ export const emailAlertsConnector: Connector = {
       since: new Date(Date.now() - data['backfill-days'] * DAY_MS),
       ownAddress: user,
       authServer: data['auth-server'],
-      cardDomains: data['card-senders'].map(domain => domain.toLowerCase()),
-      cardCurrency: data['card-currency'],
+      senders: data.senders.map(domain => domain.toLowerCase().replace(/^@/u, '')),
       maxPerSync: data['max-per-sync'],
     });
   },

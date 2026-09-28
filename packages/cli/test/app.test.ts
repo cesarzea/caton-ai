@@ -89,6 +89,7 @@ const RECEIPT = {
   periodEnd: null,
   dueOn: null,
   reference: null,
+  account: null,
   verified: false,
   origin: 'email',
 } as const;

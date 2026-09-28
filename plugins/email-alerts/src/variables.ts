@@ -88,21 +88,13 @@ export const VARIABLES: readonly VariableSpec[] = [
     help: 'The most emails sent to the model in one sync; the rest are read by the next ones. It bounds what one sync can cost.',
   },
   {
-    key: 'card-senders',
-    label: 'Cards read only by email',
+    key: 'senders',
+    label: 'Only these senders',
     kind: 'list',
     required: false,
     help: [
-      'The sender domains of card alerts for cards no bank connection reads, such as `americanexpress.com`. Their charges and refunds become movements of that card; every other email only adds documents, such as receipts, to what the banks report.',
-      'The card is recognised by the domain that authenticated the email, never by what the email says, so a forged alert cannot add movements.',
+      'The sender domains to read, such as `example.com` (its subdomains included). Leave it empty to read every sender.',
+      'One mailbox can have several connections, such as one for everything and one for a single card issuer: each email is kept once whichever reads it.',
     ].join('\n\n'),
-  },
-  {
-    key: 'card-currency',
-    label: 'Currency of those cards',
-    kind: 'text',
-    required: false,
-    default: 'EUR',
-    help: 'The ISO 4217 code of the cards above, such as `EUR`.',
   },
 ];

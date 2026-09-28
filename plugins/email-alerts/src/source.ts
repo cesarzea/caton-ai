@@ -1,9 +1,8 @@
-import {currencyCode, PartialReadError} from '@caton-ai/core';
-import type {Account, ConnectorState, TransactionSource} from '@caton-ai/core';
+import {PartialReadError} from '@caton-ai/core';
+import type {ConnectorState, TransactionSource} from '@caton-ai/core';
 import * as z from 'zod';
 
 import type {MailboxCursor} from './imap.ts';
-import {cardAccountId} from './items.ts';
 import {readMailbox} from './reader.ts';
 import type {ReadOptions, ReadResult} from './reader.ts';
 
@@ -16,25 +15,11 @@ const cursorSchema = z.object({
 
 export interface EmailSourceOptions extends Omit<ReadOptions, 'cursor'> {
   readonly state: ConnectorState;
-  /** Currency of the email-only cards. */
-  readonly cardCurrency: string;
-}
-
-function cardAccount(domain: string, currency: string): Account {
-  const id = cardAccountId(domain);
-  return {
-    id,
-    sourceRef: domain,
-    source: SOURCE_NAME,
-    institution: domain,
-    name: `Card alerts from ${domain}`,
-    currency: currencyCode(currency),
-  };
 }
 
 /**
- * Documents read from email, and movements of the cards that only email reports. The mailbox is
- * read once per sync; the cursor is written for the host to save with what was read.
+ * Documents read from email: never movements, which only accounts report. The mailbox is read
+ * once per sync; the cursor is written for the host to save with what was read.
  */
 export function createEmailSource(options: EmailSourceOptions): TransactionSource {
   const saved = cursorSchema.safeParse(options.state.read());
@@ -47,12 +32,10 @@ export function createEmailSource(options: EmailSourceOptions): TransactionSourc
       }
       return result;
     }));
-  const accounts = options.cardDomains.map(domain => cardAccount(domain, options.cardCurrency));
   return {
     name: SOURCE_NAME,
-    listAccounts: () => Promise.resolve(accounts),
-    listTransactions: async account =>
-      (await read()).transactions.filter(transaction => transaction.accountId === account.id),
+    listAccounts: () => Promise.resolve([]),
+    listTransactions: () => Promise.resolve([]),
     listBalances: () => Promise.resolve([]),
     listDocuments: async () => {
       const result = await read();
