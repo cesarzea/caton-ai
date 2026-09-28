@@ -100,3 +100,29 @@ describe('connectImapFlow reading', () => {
     expect(await (await session(false)).opened.search({since, words: ['x']})).toEqual([]);
   });
 });
+
+describe('connectImapFlow failures', () => {
+  it("report what the server said, not imapflow's generic message", async () => {
+    const refusing = (method: 'connect' | 'search'): ImapClient => {
+      const failure = Object.assign(new Error('Command failed'), {
+        responseText: 'Invalid credentials (Failure)',
+      });
+      const client = fakeClient({options: [], calls: []}, []);
+      return Object.assign(client, {[method]: () => Promise.reject(failure)});
+    };
+
+    await expect(connectImapFlow(server, () => refusing('connect'))).rejects.toThrow(
+      'the IMAP server refused the connection: Invalid credentials (Failure)',
+    );
+    const opened = await connectImapFlow(server, () => refusing('search'));
+    await expect(opened.search({words: ['x']})).rejects.toThrow(
+      'the IMAP search failed: Invalid credentials (Failure)',
+    );
+    const plain = Object.assign(fakeClient({options: [], calls: []}, []), {
+      connect: () => Promise.reject(new Error('timeout')),
+    });
+    await expect(connectImapFlow(server, () => plain)).rejects.toThrow(
+      'the IMAP server refused the connection: timeout',
+    );
+  });
+});

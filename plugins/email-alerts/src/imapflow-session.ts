@@ -50,14 +50,27 @@ function sessionOver(client: ImapClient): ImapSession {
       return {uidValidity: Number(opened.uidValidity)};
     },
     search: async query => {
-      const found = await client.search(searchObject(query), {uid: true});
-      return Array.isArray(found) ? found : [];
+      try {
+        const found = await client.search(searchObject(query), {uid: true});
+        return Array.isArray(found) ? found : [];
+      } catch (error) {
+        throw new Error(`the IMAP search failed: ${serverSaid(error)}`, {cause: error});
+      }
     },
     fetch: uids => fetchRaw(client, uids),
     close: async () => {
       await client.logout();
     },
   };
+}
+
+/** What the server said, such as "Invalid credentials": imapflow's own message is generic. */
+function serverSaid(error: unknown): string {
+  const response = (error as {responseText?: unknown} | null)?.responseText;
+  if (typeof response === 'string' && response !== '') {
+    return response;
+  }
+  return error instanceof Error ? error.message : String(error);
 }
 
 /** Opens an `ImapSession` with imapflow over TLS, with its logging off: it would print addresses. */
@@ -75,6 +88,10 @@ export async function connectImapFlow(
   client.on('error', () => {
     // Connection errors also reject the pending command, which reports them.
   });
-  await client.connect();
+  try {
+    await client.connect();
+  } catch (error) {
+    throw new Error(`the IMAP server refused the connection: ${serverSaid(error)}`, {cause: error});
+  }
   return sessionOver(client);
 }
