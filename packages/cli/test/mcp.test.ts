@@ -51,7 +51,7 @@ describe('caton mcp figures', () => {
 
     const result = await client.callTool({name: 'monthly_outflows', arguments: {months: 2}});
 
-    expect(context.lines.at(-1)).toMatch(/^2026-09\s+€160\.00\s+—$/u);
+    expect(context.lines.at(-1)).toMatch(/^2026-09\s+€160\.00\s+—\s+—$/u);
     expect(result.structuredContent).toMatchObject({
       months: [{month: '2026-09', amount: '160.00', currency: 'EUR', onlyInDocuments: '0.00'}],
     });

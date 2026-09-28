@@ -10,6 +10,7 @@ const TOOLS = [
   'monthly_outflows',
   'top_counterparties',
   'list_documents',
+  'upcoming_charges',
 ];
 
 describe.each([

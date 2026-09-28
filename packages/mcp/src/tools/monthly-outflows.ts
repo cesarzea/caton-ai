@@ -1,4 +1,5 @@
 import {firstDayOfLastMonths, moneyToDecimal, monthlySpend} from '@caton-ai/core';
+import type {SpendBasis} from '@caton-ai/core';
 import type {LedgerReader} from '@caton-ai/ledger';
 import type {McpServer} from '@modelcontextprotocol/server';
 import * as z from 'zod';
@@ -11,6 +12,10 @@ import {AMOUNT, amountOf} from '../views.ts';
 
 const INPUT = z.object({
   months: z.number().int().min(1).max(24).default(3).describe('Calendar months, current included'),
+  basis: z
+    .enum(['cash', 'accrual'])
+    .default('cash')
+    .describe('cash: when the money left; accrual: spread over the service period documents state'),
 });
 
 const OUTPUT = z.object({
@@ -22,17 +27,21 @@ const OUTPUT = z.object({
         .describe(
           'The part of the amount that only documents report, such as card charges read from email',
         ),
+      notSeen: z
+        .string()
+        .describe('Receipts no account shows, not in the amount: they may be in a card statement'),
     }),
   ),
   freshness: FRESHNESS,
 });
 
-function spendOf(ledger: LedgerReader, from: string) {
-  return monthlySpend(ledger.transactions(from), ledger.documents(from)).map(
-    ({month, total, onlyInDocuments}) => ({
+function spendOf(ledger: LedgerReader, from: string, basis: SpendBasis) {
+  return monthlySpend(ledger.transactions(from), ledger.documents(from), basis).map(
+    ({month, total, onlyInDocuments, notSeen}) => ({
       month,
       ...amountOf(total),
       onlyInDocuments: moneyToDecimal(onlyInDocuments),
+      notSeen: moneyToDecimal(notSeen),
     }),
   );
 }
@@ -51,10 +60,10 @@ export function registerMonthlyOutflows(server: McpServer, context: ServerContex
       outputSchema: OUTPUT,
       annotations: READ_ONLY,
     },
-    ({months}) =>
+    ({months, basis}) =>
       structured(
         withLedger(context, ledger => ({
-          months: spendOf(ledger, firstDayOfLastMonths(context.now(), months)),
+          months: spendOf(ledger, firstDayOfLastMonths(context.now(), months), basis),
           freshness: freshnessOf(ledger, context.connections),
         })),
       ),

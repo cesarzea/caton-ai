@@ -7,6 +7,7 @@ import {registerListTransactions} from './tools/list-transactions.ts';
 import {registerMonthlyOutflows} from './tools/monthly-outflows.ts';
 import {registerSyncStatus} from './tools/sync-status.ts';
 import {registerTopCounterparties} from './tools/top-counterparties.ts';
+import {registerUpcomingCharges} from './tools/upcoming-charges.ts';
 
 const INSTRUCTIONS = [
   'Read-only access to the user’s local Catón AI ledger: bank accounts, balances and movements.',
@@ -26,5 +27,6 @@ export function createCatonServer(context: ServerContext): McpServer {
   registerMonthlyOutflows(server, context);
   registerTopCounterparties(server, context);
   registerListDocuments(server, context);
+  registerUpcomingCharges(server, context);
   return server;
 }

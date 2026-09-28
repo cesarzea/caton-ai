@@ -8,6 +8,7 @@ import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
 import {trialCommand} from './commands/trial.ts';
+import {upcomingCommand} from './commands/upcoming.ts';
 import type {CommandContext} from './context.ts';
 
 const USAGE = [
@@ -16,9 +17,11 @@ const USAGE = [
   '  sync [connection…]  Fetch accounts, movements, balances and documents from every',
   '                   connection, or only the ones named',
   '  accounts         List accounts with their latest balance',
-  '  spend [months]   Spending per month, cash basis (default: 3 months): outflows except card',
-  '                   statement payments, plus card charges only documents report; transfers',
-  '                   between your own accounts are still included',
+  '  spend [months] [--accrual]',
+  '                   Spending per month (default: 3 months): outflows except card statement',
+  '                   payments, plus card charges only documents report; when paid, or spread',
+  '                   over the period paid for; transfers between your own accounts still count',
+  '  upcoming         Charges renewal notices announce, soonest first',
   '  documents [days] Receipts, invoices, notices and alerts read (default: 90 days)',
   '  status           Latest sync of every connection',
   '  trial <connection> <model> <model>… [--emails N]',
@@ -34,7 +37,16 @@ type Command = (context: CommandContext, args: readonly string[]) => number | Pr
 const COMMANDS = new Map<string, Command>([
   ['sync', (context, args) => syncCommand(context, args)],
   ['accounts', context => accountsCommand(context)],
-  ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
+  [
+    'spend',
+    (context, args) =>
+      spendCommand(
+        context,
+        monthsArgument(args.find(arg => !arg.startsWith('--'))),
+        args.includes('--accrual') ? 'accrual' : 'cash',
+      ),
+  ],
+  ['upcoming', context => upcomingCommand(context)],
   ['documents', (context, [days]) => documentsCommand(context, daysArgument(days))],
   ['status', context => statusCommand(context)],
   ['trial', (context, args) => trialCommand(context, args)],

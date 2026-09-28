@@ -43,3 +43,25 @@ describe('list_documents filters', () => {
     expect(page).toMatchObject({total: 2, truncated: true});
   });
 });
+
+describe('upcoming_charges', () => {
+  it('lists the charges renewal notices announce', async () => {
+    const result = await callTool(testContext(), 'upcoming_charges', {});
+
+    expect(result.structuredContent).toMatchObject({
+      charges: [{issuer: 'Example AI Inc', date: '2026-10-05', amount: null}],
+    });
+  });
+});
+
+describe('monthly_outflows on an accrual basis', () => {
+  it('reports receipts no account shows apart', async () => {
+    const result = await callTool(testContext(), 'monthly_outflows', {months: 2, basis: 'accrual'});
+    const {months} = result.structuredContent as {months: {month: string; notSeen: string}[]};
+
+    expect(months.map(({month, notSeen}) => [month, notSeen])).toEqual([
+      ['2026-08', '0.00'],
+      ['2026-09', '0.00'],
+    ]);
+  });
+});

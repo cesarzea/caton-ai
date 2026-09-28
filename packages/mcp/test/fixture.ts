@@ -73,6 +73,7 @@ const DOCUMENTS = [
     kind: 'renewal',
     amount: null,
     issuedOn: '2026-09-20',
+    dueOn: '2026-10-05',
     verified: false,
   }),
 ];

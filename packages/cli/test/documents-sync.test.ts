@@ -115,3 +115,31 @@ describe('caton status with model spend', () => {
     );
   });
 });
+
+describe('caton spend on an accrual basis and caton upcoming', () => {
+  it('spread spending over the period paid for, and list announced charges', async () => {
+    const context = {...testContext({millennium: workingSource}), source: reading};
+    await run(['sync'], context);
+    const at = new Date('2026-09-27T09:00:00Z');
+    const renewal = {...RECEIPT, id: 'email:<9@x>', kind: 'renewal', dueOn: '2026-10-05'} as const;
+    context.ledger().saveSync({
+      source: 'mail',
+      startedAt: at,
+      finishedAt: at,
+      accounts: [],
+      documents: [renewal],
+    });
+
+    expect(await run(['spend', '2', '--accrual'], context)).toBe(0);
+    expect(context.lines.some(line => line.startsWith('Month    Spending'))).toBe(true);
+    expect(await run(['upcoming'], context)).toBe(0);
+    expect(context.lines.at(-1)).toMatch(/^2026-10-05\s+Example AI Inc\s+€160\.00\s+—$/u);
+  });
+
+  it('say when no notice announces a charge', async () => {
+    const context = testContext({});
+
+    expect(await run(['upcoming'], context)).toBe(0);
+    expect(context.lines).toEqual(['No renewal notices announce a charge.']);
+  });
+});
