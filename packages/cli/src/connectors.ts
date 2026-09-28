@@ -19,7 +19,7 @@ import {recorded} from './model-calls.ts';
 import type {OnModelCall} from './model-calls.ts';
 
 /** What a sync lends a source: where its model calls are reported, and its state. */
-export interface SourceHooks {
+interface SourceHooks {
   readonly onModelCall?: OnModelCall;
   readonly state?: ConnectorState;
 }

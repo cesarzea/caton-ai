@@ -25,12 +25,13 @@ describe('documents', () => {
     ledger.saveSync({...snapshot([movement()]), documents: [receipt], state: {value: {uid: 42}}});
     ledger.saveSync({...snapshot([movement()], '2026-09-27T16:00:00Z'), documents: [receipt]});
 
-    expect(ledger.documents('2026-09-01')).toEqual([receipt]);
+    expect(ledger.documents('2026-09-01')).toEqual([{document: receipt, transactionId: null}]);
     expect(ledger.connectorState('millennium')).toEqual({uid: 42});
     expect(ledger.connectorState('other')).toBeNull();
     ledger.linkDocuments([{documentId: receipt.id, transactionId: movement().id}], new Date());
     ledger.linkDocuments([{documentId: receipt.id, transactionId: movement().id}], new Date());
     expect(ledger.unlinkedDocuments()).toEqual([]);
+    expect(ledger.documents('2026-09-01')[0]?.transactionId).toBe(movement().id);
   });
 
   it('are saved from a partial read, whose run still counts as failed', () => {

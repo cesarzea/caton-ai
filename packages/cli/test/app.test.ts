@@ -1,3 +1,4 @@
+import {money} from '@caton-ai/core';
 import {describe, expect, it} from 'vitest';
 
 import {run} from '../src/app.ts';
@@ -75,5 +76,48 @@ describe('caton status and help', () => {
 
     expect(await run(['accounts'], context)).toBe(0);
     expect(context.lines).toEqual(['No accounts yet. Run: caton sync']);
+  });
+});
+
+const RECEIPT = {
+  id: 'email:<1@x>',
+  kind: 'receipt',
+  issuer: 'Example AI Inc',
+  amount: money(16_000, 'EUR'),
+  issuedOn: '2026-09-15',
+  periodStart: null,
+  periodEnd: null,
+  dueOn: null,
+  reference: null,
+  verified: false,
+  origin: 'email',
+} as const;
+
+describe('caton documents', () => {
+  it('says when there are none', async () => {
+    const context = testContext({millennium: workingSource});
+
+    expect(await run(['documents', '30'], context)).toBe(0);
+    expect(context.lines.at(-1)).toBe('No documents in the last 30 days.');
+  });
+
+  it('lists documents with their state', async () => {
+    const context = testContext({millennium: workingSource});
+    const at = new Date('2026-09-27T09:00:00Z');
+    context.ledger().saveSync({
+      source: 'mail',
+      startedAt: at,
+      finishedAt: at,
+      accounts: [],
+      documents: [RECEIPT],
+    });
+
+    expect(await run(['documents'], context)).toBe(0);
+    expect(context.lines.at(-1)).toMatch(
+      /^2026-09-15\s+receipt\s+Example AI Inc\s+€160\.00\s+to review\s+—$/u,
+    );
+    expect(context.errors.at(-1)).toBe(
+      '⚠ 1 document(s) to review: their fields are not all written in the email',
+    );
   });
 });

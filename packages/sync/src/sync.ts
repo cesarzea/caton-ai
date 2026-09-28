@@ -28,6 +28,34 @@ export type SyncOutcome =
     }
   | {readonly name: string; readonly ok: false; readonly error: string};
 
+/** Reads the source and saves what it read, with its state, even when it stopped midway. */
+async function readAndSave(
+  request: SyncRequest,
+  startedAt: Date,
+  fromDate: string,
+  now: () => Date,
+): Promise<SyncOutcome> {
+  const source = request.source();
+  const accounts = await readAccounts(source, fromDate);
+  const {documents, error} = await readDocuments(source, fromDate);
+  const state = request.state?.();
+  request.ledger.saveSync({
+    source: request.name,
+    startedAt,
+    finishedAt: now(),
+    accounts,
+    documents,
+    ...(state === undefined ? {} : {state}),
+    error,
+  });
+  if (error !== null) {
+    return {name: request.name, ok: false, error};
+  }
+  const transactions = accounts.reduce((sum, item) => sum + item.transactions.length, 0);
+  const counts = {accounts: accounts.length, transactions, documents: documents.length};
+  return {name: request.name, ok: true, ...counts};
+}
+
 /**
  * Syncs one connection into the ledger. A failure never throws: it is recorded in the ledger
  * (which is what turns the totals red) and returned, so other connections still sync.
@@ -37,30 +65,7 @@ export async function syncConnection(request: SyncRequest): Promise<SyncOutcome>
   const startedAt = now();
   const fromDate = syncFromDate(request.ledger.lastSuccessfulRun(request.name), startedAt);
   try {
-    const source = request.source();
-    const accounts = await readAccounts(source, fromDate);
-    const {documents, error} = await readDocuments(source, fromDate);
-    const state = request.state?.();
-    request.ledger.saveSync({
-      source: request.name,
-      startedAt,
-      finishedAt: now(),
-      accounts,
-      documents,
-      ...(state === undefined ? {} : {state}),
-      error,
-    });
-    if (error !== null) {
-      return {name: request.name, ok: false, error};
-    }
-    const transactions = accounts.reduce((sum, item) => sum + item.transactions.length, 0);
-    return {
-      name: request.name,
-      ok: true,
-      accounts: accounts.length,
-      transactions,
-      documents: documents.length,
-    };
+    return await readAndSave(request, startedAt, fromDate, now);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     request.ledger.recordFailure({

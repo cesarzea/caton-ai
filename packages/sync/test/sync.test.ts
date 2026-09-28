@@ -91,22 +91,23 @@ describe('syncConnection failures', () => {
   });
 });
 
+const document = {
+  id: 'email:<1@x>',
+  kind: 'receipt',
+  issuer: 'X',
+  amount: money(100, 'EUR'),
+  issuedOn: '2026-09-10',
+  periodStart: null,
+  periodEnd: null,
+  dueOn: null,
+  reference: null,
+  verified: true,
+  origin: 'email',
+} as const;
+
 describe('sources with documents', () => {
   it('save what a partial read got, with its state, and report the failure', async () => {
     const ledger = openLedger(':memory:');
-    const document = {
-      id: 'email:<1@x>',
-      kind: 'receipt',
-      issuer: 'X',
-      amount: money(100, 'EUR'),
-      issuedOn: '2026-09-10',
-      periodStart: null,
-      periodEnd: null,
-      dueOn: null,
-      reference: null,
-      verified: true,
-      origin: 'email',
-    } as const;
     const source: TransactionSource = {
       ...fakeSource([]),
       listDocuments: () => Promise.reject(new PartialReadError('the model stopped', [document])),
@@ -120,7 +121,7 @@ describe('sources with documents', () => {
     });
 
     expect(outcome).toEqual({name: 'mail', ok: false, error: 'the model stopped'});
-    expect(ledger.documents('2026-01-01')).toEqual([document]);
+    expect(ledger.documents('2026-01-01')).toEqual([{document, transactionId: null}]);
     expect(ledger.connectorState('mail')).toEqual({uid: 7});
   });
 });

@@ -1,5 +1,6 @@
-import {recipeSchema} from '../src/index.ts';
-import type {MailMessage, Recipe} from '../src/index.ts';
+import type {ConnectorState, LanguageModel} from '@caton-ai/core';
+
+import type {Mailbox, MailboxCursor, MailMessage} from '../src/index.ts';
 
 // Synthetic data only: the repository is public.
 
@@ -20,20 +21,69 @@ export function message(overrides: Partial<MailMessage> = {}): MailMessage {
   };
 }
 
-export function recipe(overrides: Record<string, unknown> = {}): Recipe {
-  return recipeSchema.parse({
-    id: 'example-card-charge',
-    senderDomain: 'example-card.com',
-    subject: 'cargo',
-    account: {institution: 'Example Card', name: 'Gold', currency: 'EUR'},
-    numberFormat: 'comma-decimal',
-    dateFormat: 'DD/MM/YYYY',
-    fields: {
-      amount: 'Importe:\\s*([\\d.,]+)',
-      merchant: 'Establecimiento:\\s*(.+)',
-      date: 'Fecha:\\s*(\\S+)',
+/** What a model answers for the charge in `message()`. */
+export const CHARGE = {
+  kind: 'charge',
+  issuer: 'EXAMPLE STORE MADRID',
+  amount_written: '1.234,56 €',
+  currency: 'EUR',
+  date_written: '19/09/2026',
+  date: '2026-09-19',
+  period_start: null,
+  period_end: null,
+  due_date: null,
+  reference: null,
+};
+
+const USAGE = {
+  provider: 'fake',
+  model: 'fake',
+  inputTokens: 1,
+  cacheReadTokens: null,
+  cacheWriteTokens: null,
+  outputTokens: 1,
+  reportedCostUsd: 0,
+};
+
+/** A model answering each call in turn; an Error answer fails that call. */
+export function fakeModel(answers: readonly unknown[]): LanguageModel & {readonly seen: string[]} {
+  const seen: string[] = [];
+  return {
+    name: 'fake',
+    seen,
+    extract: request => {
+      const answer = answers[seen.length];
+      seen.push(request.content);
+      return answer instanceof Error
+        ? Promise.reject(answer)
+        : Promise.resolve({value: answer, usage: USAGE});
     },
-    partialCoverage: 'charges below 50 EUR',
-    ...overrides,
-  });
+  };
+}
+
+/** A mailbox holding `messages` under UIDs 1, 2, 3… of UIDVALIDITY 9. */
+export function fakeMailbox(
+  messages: readonly MailMessage[],
+): Mailbox & {readonly asked: (MailboxCursor | null)[]} {
+  const asked: (MailboxCursor | null)[] = [];
+  return {
+    asked,
+    newMessages: cursor => {
+      asked.push(cursor);
+      const after = cursor?.uidValidity === 9 ? cursor.lastUid : 0;
+      const all = messages.map((item, index) => ({uid: index + 1, message: item}));
+      return Promise.resolve({uidValidity: 9, messages: all.filter(item => item.uid > after)});
+    },
+  };
+}
+
+export function memoryState(initial: unknown = null): ConnectorState & {value: unknown} {
+  const state = {
+    value: initial,
+    read: () => state.value,
+    write: (value: unknown) => {
+      state.value = value;
+    },
+  };
+  return state;
 }

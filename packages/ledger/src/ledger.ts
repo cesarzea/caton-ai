@@ -4,6 +4,7 @@ import type {Account, Balance, DocumentLink, FinancialDocument, Transaction} fro
 
 import {openDatabase, openDatabaseReadOnly} from './database.ts';
 import {insertLinks, readDocuments, readState, readUnlinkedDocuments} from './documents.ts';
+import type {LedgerDocument} from './documents.ts';
 import {insertModelCall, readModelSpend} from './model-calls.ts';
 import type {ModelCallRecord, ModelSpend} from './model-calls.ts';
 import {searchTransactions} from './query.ts';
@@ -22,7 +23,7 @@ export interface LedgerReader {
   /** Latest run of a source, successful or not: what decides whether totals are trustworthy. */
   lastRun(source: string): SyncRun | null;
   lastSuccessfulRun(source: string): SyncRun | null;
-  documents(fromDate: string): FinancialDocument[];
+  documents(fromDate: string): LedgerDocument[];
   unlinkedDocuments(): FinancialDocument[];
   /** The value a connection kept at its last saved sync, or null. */
   connectorState(source: string): unknown;

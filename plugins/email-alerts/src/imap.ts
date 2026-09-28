@@ -1,20 +1,51 @@
 import type {MailMessage} from './message.ts';
 import {parseMessage} from './mime.ts';
-import type {Mailbox} from './source.ts';
+
+/** How far a mailbox folder has been read: IMAP UIDs only compare within one UIDVALIDITY. */
+export interface MailboxCursor {
+  readonly uidValidity: number;
+  readonly lastUid: number;
+}
+
+export interface SearchQuery {
+  /** Messages received on or after this date, when there is no usable cursor. */
+  readonly since?: Date;
+  /** Messages after this UID. */
+  readonly afterUid?: number;
+  /** Words any of which the message text must contain, searched by the server. */
+  readonly words: readonly string[];
+}
 
 /** The few IMAP operations the connector needs, so that the protocol client can be replaced. */
 export interface ImapSession {
   /** Folders with their special use, such as `\All` for Gmail's "All Mail". */
   folders(): Promise<readonly {readonly path: string; readonly specialUse: string | null}[]>;
   /** Opens a folder read-only (IMAP EXAMINE): nothing in it can change. */
-  openReadOnly(path: string): Promise<void>;
-  /** UIDs of messages whose `From` contains `sender`, received on or after `since`. */
-  search(sender: string, since: Date): Promise<readonly number[]>;
+  openReadOnly(path: string): Promise<{readonly uidValidity: number}>;
+  search(query: SearchQuery): Promise<readonly number[]>;
   /** Raw messages, fetched without setting any flag (BODY.PEEK). */
   fetch(
     uids: readonly number[],
-  ): AsyncIterable<{readonly source: Uint8Array; readonly receivedAt: Date}>;
+  ): AsyncIterable<{readonly uid: number; readonly source: Uint8Array; readonly receivedAt: Date}>;
   close(): Promise<void>;
+}
+
+export interface MailboxMessage {
+  readonly uid: number;
+  readonly message: MailMessage;
+}
+
+/** Where messages come from: IMAP in production, a fake in tests. */
+export interface Mailbox {
+  /**
+   * The messages after `cursor` whose text contains one of `words`, in ascending UID, or those
+   * received since `since` when the cursor is missing or belongs to another UIDVALIDITY.
+   */
+  newMessages(
+    cursor: MailboxCursor | null,
+    since: Date,
+    words: readonly string[],
+  ): Promise<{readonly uidValidity: number; readonly messages: readonly MailboxMessage[]}>;
 }
 
 export interface ImapMailboxOptions {
@@ -31,32 +62,30 @@ async function folderToRead(session: ImapSession, folder: string | undefined): P
   return all?.path ?? 'INBOX';
 }
 
-async function readFrom(
-  session: ImapSession,
-  domains: readonly string[],
-  since: Date,
-): Promise<MailMessage[]> {
-  const uids = new Set<number>();
-  for (const domain of domains) {
-    (await session.search(domain, since)).forEach(uid => uids.add(uid));
+async function fetchAll(session: ImapSession, uids: readonly number[]): Promise<MailboxMessage[]> {
+  const messages: MailboxMessage[] = [];
+  for await (const {uid, source, receivedAt} of session.fetch(uids)) {
+    messages.push({uid, message: await parseMessage(source, receivedAt)});
   }
-  const messages: MailMessage[] = [];
-  if (uids.size > 0) {
-    for await (const {source, receivedAt} of session.fetch([...uids].sort((a, b) => a - b))) {
-      messages.push(await parseMessage(source, receivedAt));
-    }
-  }
-  return messages;
+  return messages.sort((a, b) => a.uid - b.uid);
 }
 
 /** A mailbox read over IMAP, strictly read-only: nothing is marked as read, moved or deleted. */
 export function imapMailbox(options: ImapMailboxOptions): Mailbox {
   return {
-    messagesFrom: async (domains, since) => {
+    newMessages: async (cursor, since, words) => {
       const session = await options.connect();
       try {
-        await session.openReadOnly(await folderToRead(session, options.folder));
-        return await readFrom(session, domains, since);
+        const {uidValidity} = await session.openReadOnly(
+          await folderToRead(session, options.folder),
+        );
+        const after = cursor?.uidValidity === uidValidity ? cursor.lastUid : null;
+        const found = await session.search(
+          after === null ? {since, words} : {afterUid: after, words},
+        );
+        // `UID n:*` also returns the last message when nothing is newer.
+        const uids = found.filter(uid => after === null || uid > after).sort((a, b) => a - b);
+        return {uidValidity, messages: uids.length === 0 ? [] : await fetchAll(session, uids)};
       } finally {
         await session.close();
       }

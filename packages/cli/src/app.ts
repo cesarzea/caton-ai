@@ -1,5 +1,6 @@
 import {accountsCommand} from './commands/accounts.ts';
 import {configCommand} from './commands/config.ts';
+import {documentsCommand} from './commands/documents.ts';
 import {mcpCommand} from './commands/mcp.ts';
 import {secretsCommand} from './commands/secrets.ts';
 import {DEFAULT_PORT, serveCommand} from './commands/serve.ts';
@@ -15,6 +16,7 @@ const USAGE = [
   '  accounts         List accounts with their latest balance',
   '  spend [months]   Money leaving your accounts per month, cash basis (default: 3 months);',
   '                   includes transfers between your own accounts',
+  '  documents [days] Receipts, invoices, notices and alerts read (default: 90 days)',
   '  status           Latest sync of every connection',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
   '  secrets          Manage the encrypted secret store (caton secrets help)',
@@ -28,6 +30,7 @@ const COMMANDS = new Map<string, Command>([
   ['sync', context => syncCommand(context)],
   ['accounts', context => accountsCommand(context)],
   ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
+  ['documents', (context, [days]) => documentsCommand(context, daysArgument(days))],
   ['status', context => statusCommand(context)],
   ['mcp', context => mcpCommand(context)],
   ['secrets', (context, args) => secretsCommand(context, args)],
@@ -55,6 +58,11 @@ function usage(context: CommandContext, exitCode: number): number {
 function monthsArgument(value: string | undefined): number {
   const months = Number.parseInt(value ?? '3', 10);
   return Number.isInteger(months) && months > 0 && months <= 120 ? months : 3;
+}
+
+function daysArgument(value: string | undefined): number {
+  const days = Number.parseInt(value ?? '90', 10);
+  return Number.isInteger(days) && days > 0 && days <= 3_650 ? days : 90;
 }
 
 function portArgument(value: string | undefined): number {

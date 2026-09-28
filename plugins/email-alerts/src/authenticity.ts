@@ -23,14 +23,22 @@ function withoutComments(header: string): string {
   return kept;
 }
 
+/**
+ * Relaxed alignment (DMARC): one domain is the other or a subdomain of it, as when
+ * `welcome.example.com` sends mail signed by `example.com`.
+ */
+function aligned(signer: string, domain: string): boolean {
+  return belongsTo(signer, domain) || belongsTo(domain, signer);
+}
+
 function passesFor(result: string, domain: string): boolean {
   if (result.startsWith('dmarc=pass')) {
     const from = /\bheader\.from=(\S+)/u.exec(result)?.[1];
-    return from !== undefined && belongsTo(from, domain);
+    return from !== undefined && aligned(from, domain);
   }
   if (result.startsWith('dkim=pass')) {
     const signer = /\bheader\.(?:d=|i=@?)(\S+)/u.exec(result)?.[1];
-    return signer !== undefined && belongsTo(signer, domain);
+    return signer !== undefined && aligned(signer, domain);
   }
   return false;
 }

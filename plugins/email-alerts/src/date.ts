@@ -1,13 +1,5 @@
 /** Date layouts found in alerts; the separators are part of the layout. */
-export const DATE_FORMATS = [
-  'DD/MM/YYYY',
-  'DD-MM-YYYY',
-  'DD.MM.YYYY',
-  'MM/DD/YYYY',
-  'YYYY-MM-DD',
-] as const;
-
-export type DateFormat = (typeof DATE_FORMATS)[number];
+export type DateFormat = 'DD/MM/YYYY' | 'DD-MM-YYYY' | 'DD.MM.YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 
 function pattern(format: DateFormat): RegExp {
   const source = format

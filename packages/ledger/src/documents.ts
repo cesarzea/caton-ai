@@ -21,22 +21,30 @@ export function upsertDocument(
          period_end = excluded.period_end, due_on = excluded.due_on, reference = excluded.reference,
          verified = excluded.verified, origin = excluded.origin, last_seen_at = excluded.last_seen_at`,
     )
-    .run({
-      id: document.id,
-      kind: document.kind,
-      issuer: document.issuer,
-      issuedOn: document.issuedOn,
-      periodStart: document.periodStart,
-      periodEnd: document.periodEnd,
-      dueOn: document.dueOn,
-      reference: document.reference,
-      origin: document.origin,
-      source,
-      amountMinor: document.amount?.minorUnits ?? null,
-      currency: document.amount?.currency ?? null,
-      verified: document.verified ? 1 : 0,
-      seenAt,
-    });
+    .run(paramsOf(source, document, seenAt));
+}
+
+function paramsOf(
+  source: string,
+  document: FinancialDocument,
+  seenAt: string,
+): Record<string, string | number | null> {
+  return {
+    id: document.id,
+    kind: document.kind,
+    issuer: document.issuer,
+    issuedOn: document.issuedOn,
+    periodStart: document.periodStart,
+    periodEnd: document.periodEnd,
+    dueOn: document.dueOn,
+    reference: document.reference,
+    origin: document.origin,
+    source,
+    amountMinor: document.amount?.minorUnits ?? null,
+    currency: document.amount?.currency ?? null,
+    verified: document.verified ? 1 : 0,
+    seenAt,
+  };
 }
 
 const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
@@ -59,12 +67,22 @@ function documentOf(row: Record<string, unknown>): FinancialDocument {
   };
 }
 
+/** A stored document, with the transaction it is linked to, if any. */
+export interface LedgerDocument {
+  readonly document: FinancialDocument;
+  readonly transactionId: string | null;
+}
+
 /** Documents issued on or after `fromDate`, newest first. */
-export function readDocuments(database: DatabaseSync, fromDate: string): FinancialDocument[] {
+export function readDocuments(database: DatabaseSync, fromDate: string): LedgerDocument[] {
   return database
-    .prepare('SELECT * FROM documents WHERE issued_on >= $fromDate ORDER BY issued_on DESC, id')
+    .prepare(
+      `SELECT d.*, l.transaction_id FROM documents d
+       LEFT JOIN document_links l ON l.document_id = d.id
+       WHERE d.issued_on >= $fromDate ORDER BY d.issued_on DESC, d.id`,
+    )
     .all({fromDate})
-    .map(documentOf);
+    .map(row => ({document: documentOf(row), transactionId: text(row['transaction_id'])}));
 }
 
 /** Documents not linked to any transaction yet. */
