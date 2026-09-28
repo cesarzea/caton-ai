@@ -14,6 +14,7 @@ const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
     error: null,
+    changedSinceSync: false,
   },
   {
     id: 'amex',
@@ -23,6 +24,7 @@ const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T11:00:00.000Z',
     lastSuccessfulSyncAt: null,
     error: '1 email(s) could not be read',
+    changedSinceSync: true,
   },
 ];
 

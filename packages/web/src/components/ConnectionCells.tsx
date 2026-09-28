@@ -50,6 +50,7 @@ export function Problem({
       {missing === undefined ? null : <strong>{text.configuration.needs(missing)}</strong>}
       {missing !== undefined && connection.error !== null ? <br /> : null}
       {connection.error ?? ''}
+      {connection.changedSinceSync ? <span className="hint">{text.sync.changed}</span> : null}
     </td>
   );
 }

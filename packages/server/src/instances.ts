@@ -56,7 +56,13 @@ export async function createInstance(
   );
   configuration.save([
     ...existing,
-    {id, title: body.title, plugin: plugin.id, settings: checkedSettings(plugin, body.settings)},
+    {
+      id,
+      title: body.title,
+      plugin: plugin.id,
+      settings: checkedSettings(plugin, body.settings),
+      changedAt: new Date().toISOString(),
+    },
   ]);
   sendJson(response, 201, {id});
 }
@@ -77,10 +83,25 @@ export async function updateInstance(
   const settings = checkedSettings(pluginOf(plugins, current.plugin), body.settings);
   configuration.save(
     existing.map(instance =>
-      instance.id === id ? {...instance, title: body.title, settings} : instance,
+      instance.id === id
+        ? {...instance, title: body.title, settings, changedAt: new Date().toISOString()}
+        : instance,
     ),
   );
   sendJson(response, 204);
+}
+
+/** Marks the instance a store key such as `plugin:instance:variable` belongs to as changed. */
+export function touchInstanceOf(configuration: Configuration, key: string): void {
+  const id = key.split(':')[1];
+  const existing = configuration.instances();
+  if (id === undefined || !existing.some(instance => instance.id === id)) {
+    return;
+  }
+  const changedAt = new Date().toISOString();
+  configuration.save(
+    existing.map(instance => (instance.id === id ? {...instance, changedAt} : instance)),
+  );
 }
 
 /** Removes an instance from the configuration and returns it. */

@@ -99,6 +99,7 @@ export const text = {
     button: 'Sync',
     one: (title: string) => `Sync ${title}`,
     running: 'Syncing…',
+    changed: 'Changed since this sync: sync again to see the result of your changes.',
   },
   connections: {
     title: 'Connections',

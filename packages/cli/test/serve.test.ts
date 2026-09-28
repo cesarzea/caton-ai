@@ -83,3 +83,28 @@ describe('caton serve syncing', () => {
     expect(context.ledger().lastRun('millennium')).toBeNull();
   });
 });
+
+describe('connectionStatuses after a change', () => {
+  it('says when a connection changed after its last sync', async () => {
+    const context = testContext({millennium: workingSource});
+    await run(['sync'], context);
+    const [before, after] = ['2026-09-27T09:00:00.000Z', '2026-09-27T11:00:00.000Z'].map(
+      changedAt => ({
+        id: 'millennium',
+        title: 'Millennium',
+        plugin: 'fake',
+        settings: {},
+        changedAt,
+      }),
+    );
+
+    expect(
+      connectionStatuses(before === undefined ? [] : [before], () => context.readOnlyLedger())[0]
+        ?.changedSinceSync,
+    ).toBe(false);
+    expect(
+      connectionStatuses(after === undefined ? [] : [after], () => context.readOnlyLedger())[0]
+        ?.changedSinceSync,
+    ).toBe(true);
+  });
+});

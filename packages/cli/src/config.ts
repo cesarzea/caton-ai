@@ -13,6 +13,8 @@ const instanceSchema = z.object({
   plugin: z.string().regex(IDENTIFIER),
   /** Values of its non-secret variables; secret ones live only in the store. */
   settings: z.record(z.string(), z.unknown()).default({}),
+  /** When its settings or secrets last changed from the web interface. */
+  changedAt: z.iso.datetime().optional(),
 });
 
 const configSchema = z.looseObject({

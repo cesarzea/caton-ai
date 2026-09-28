@@ -53,6 +53,8 @@ export const instanceSchema = z.object({
   title: z.string(),
   plugin: z.string(),
   settings: z.record(z.string(), settingValueSchema),
+  /** When its settings or secrets last changed, as an ISO timestamp. */
+  changedAt: z.string().optional(),
 });
 
 export const instanceListSchema = z.object({instances: z.array(instanceSchema)});

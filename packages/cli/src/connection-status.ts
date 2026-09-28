@@ -3,7 +3,10 @@ import type {LedgerReader} from '@caton-ai/ledger';
 
 import type {Instance} from './config.ts';
 
-function statusOf(reader: LedgerReader | null, {id, title, plugin}: Instance): ConnectionStatus {
+function statusOf(
+  reader: LedgerReader | null,
+  {id, title, plugin, changedAt}: Instance,
+): ConnectionStatus {
   const last = reader?.lastRun(id) ?? null;
   if (reader === null || last === null) {
     return {
@@ -14,6 +17,7 @@ function statusOf(reader: LedgerReader | null, {id, title, plugin}: Instance): C
       lastRunAt: null,
       lastSuccessfulSyncAt: null,
       error: null,
+      changedSinceSync: false,
     };
   }
   return {
@@ -24,6 +28,7 @@ function statusOf(reader: LedgerReader | null, {id, title, plugin}: Instance): C
     lastRunAt: last.finishedAt,
     lastSuccessfulSyncAt: reader.lastSuccessfulRun(id)?.finishedAt ?? null,
     error: last.error,
+    changedSinceSync: changedAt !== undefined && changedAt > last.finishedAt,
   };
 }
 

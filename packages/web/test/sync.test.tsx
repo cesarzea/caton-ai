@@ -30,3 +30,14 @@ describe('syncing from the page', () => {
     ]);
   });
 });
+
+describe('a connection changed after its last sync', () => {
+  it('says its last result may not reflect the change', async () => {
+    openApp(fakeApi({state: 'unlocked', keySource: 'passphrase'}));
+    const row = (await screen.findByRole('rowheader', {name: 'Amex'})).closest('tr');
+    const cells = within(row ?? document.body);
+
+    expect(cells.getByText('1 email(s) could not be read')).toBeDefined();
+    expect(cells.getByText(/Changed since this sync/u)).toBeDefined();
+  });
+});

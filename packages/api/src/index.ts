@@ -36,6 +36,8 @@ export const connectionStatusSchema = z.object({
   lastRunAt: z.string().nullable(),
   lastSuccessfulSyncAt: z.string().nullable(),
   error: z.string().nullable(),
+  /** Its settings or secrets changed after its last sync, so that sync may not reflect them. */
+  changedSinceSync: z.boolean(),
 });
 
 export const statusSchema = z.object({

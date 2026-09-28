@@ -46,6 +46,7 @@ export const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
     error: null,
+    changedSinceSync: false,
   },
 ];
 
