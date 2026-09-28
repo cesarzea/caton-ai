@@ -26,8 +26,12 @@ Options considered:
 
 - **The AI SDK, inside Catón AI.** One model plugin, `llm`, is configured as instances (ADR 0019):
   provider, model, API key (a secret, shareable with a macro) and, for local servers, their
-  address. Providers offered: Anthropic, OpenAI, Google, OpenRouter, Ollama and any
-  OpenAI-compatible server. Adding one is adding its AI SDK package.
+  address. Providers offered: every official AI SDK provider reached with a single key (Anthropic,
+  OpenAI, Google, xAI, Mistral, DeepSeek, Groq, Cerebras, Together AI, Fireworks, DeepInfra,
+  Cohere, Perplexity, Moonshot, Alibaba, MiniMax and Baseten), the OpenRouter and Vercel AI
+  Gateway routers, Ollama, and any OpenAI-compatible server with an optional key of its own.
+  Providers that need cloud credentials rather than a key (Amazon Bedrock, Google Vertex, Azure)
+  are left until they are needed. Adding one is adding its AI SDK package.
 - **A language models centre in the web interface.** The configured models of every provider are
   listed apart from the connections, with what each still lacks and which connections use it.
   - A provider's API key is asked only while that provider has none. It is saved encrypted once,

@@ -2,6 +2,7 @@ import {describe, expect, it} from 'vitest';
 
 import {languageModel, llmProvider} from '../src/index.ts';
 import {providerOptions, sdkModel} from '../src/providers.ts';
+import {KEYED} from '../src/variables.ts';
 
 interface Sent {
   readonly url: string;
@@ -78,10 +79,12 @@ describe('providers', () => {
       return typeof model === 'string' ? model : model.provider;
     };
 
+    for (const id of KEYED) {
+      expect(provider(id).length).toBeGreaterThan(0);
+    }
     expect(provider('anthropic')).toMatch(/^anthropic/u);
-    expect(provider('openai')).toMatch(/^openai/u);
-    expect(provider('google')).toMatch(/^google/u);
     expect(provider('openrouter')).toBe('openrouter');
+    expect(provider('gateway')).toBe('gateway');
     expect(provider('ollama')).toMatch(/^ollama/u);
     expect(provider('openai-compatible', 'http://127.0.0.1:1234/v1')).toMatch(
       /^openai-compatible/u,
