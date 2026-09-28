@@ -14,7 +14,15 @@ import type {Catalog, Lookup} from '@caton-ai/instances';
 import {ConfigError} from './config.ts';
 import type {Instance} from './config.ts';
 
-export type SourceFor = (instance: Instance, lookup: Lookup) => TransactionSource;
+import {recorded} from './model-calls.ts';
+import type {OnModelCall} from './model-calls.ts';
+
+/** Builds an instance's source; calls to its model, if it has one, are reported to `onModelCall`. */
+export type SourceFor = (
+  instance: Instance,
+  lookup: Lookup,
+  onModelCall?: OnModelCall,
+) => TransactionSource;
 
 /** The installed plugins: connectors sync money data, model providers read text for them. */
 export interface Plugins {
@@ -35,16 +43,22 @@ export function modelPluginsOf({models}: Plugins): ReadonlySet<string> {
 function modelResolver(
   models: readonly ModelProvider[],
   instances: () => readonly Instance[],
-): (user: Instance, id: string, lookup: Lookup, options: ModelOptions) => LanguageModel {
+): (
+  user: Instance,
+  id: string,
+  lookup: Lookup,
+  options: ModelOptions & {onCall: OnModelCall},
+) => LanguageModel {
   const byId = new Map(models.map(provider => [provider.manifest.id, provider]));
-  return (user, id, lookup, options) => {
+  return (user, id, lookup, {onCall, ...options}) => {
     const instance = instances().find(candidate => candidate.id === id);
     const provider = instance === undefined ? undefined : byId.get(instance.plugin);
     if (instance === undefined || provider === undefined) {
       throw new ConfigError(`${user.title} uses the model "${id}", which is not configured`);
     }
     const variables = resolveVariables(instance, provider.manifest.variables, lookup);
-    return provider.createModel(variables, options);
+    const model = provider.createModel(variables, options);
+    return recorded(model, {connection: user.id, modelInstance: id}, onCall);
   };
 }
 
@@ -97,7 +111,7 @@ export function sourceFactory(
 ): SourceFor {
   const byId = new Map(plugins.connectors.map(connector => [connector.manifest.id, connector]));
   const modelFor = modelResolver(plugins.models, instances);
-  return (instance, lookup) => {
+  return (instance, lookup, onModelCall = () => undefined) => {
     const connector = byId.get(instance.plugin);
     if (connector === undefined) {
       throw notInstalled(instance, byId.keys());
@@ -111,6 +125,7 @@ export function sourceFactory(
         : {
             model: modelFor(instance, model, lookup, {
               reasoning: reasoningOf(connector, instance, variables),
+              onCall: onModelCall,
             }),
           }),
     };

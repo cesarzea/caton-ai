@@ -2,17 +2,24 @@ import {syncConnection} from '@caton-ai/sync';
 
 import {connections} from '../context.ts';
 import type {CommandContext} from '../context.ts';
+import {callRecord} from '../model-calls.ts';
 import {storeLookup} from '../secrets.ts';
 
 /** Syncs every configured instance; returns the process exit code. */
 export async function syncCommand(context: CommandContext): Promise<number> {
   const lookup = await storeLookup(context.config(), context.catalog, context.secrets.open);
   const ledger = context.ledger();
+  const prices = context.prices();
+  await prices.refresh();
+  const onModelCall = (call: Parameters<typeof callRecord>[0]): void => {
+    const at = context.now();
+    ledger.recordModelCall(callRecord(call, at, prices.price(call.usage, at)));
+  };
   let failures = 0;
   for (const instance of connections(context)) {
     const outcome = await syncConnection({
       name: instance.id,
-      source: () => context.source(instance, lookup),
+      source: () => context.source(instance, lookup, onModelCall),
       ledger,
       now: context.now,
     });

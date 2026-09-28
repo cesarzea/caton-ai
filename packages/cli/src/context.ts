@@ -7,6 +7,7 @@ import type {CatonConfig, Instance} from './config.ts';
 import type {ConfigFile} from './config-file.ts';
 import type {SourceFor} from './connectors.ts';
 import type {Output} from './output.ts';
+import type {PriceBook} from './prices.ts';
 
 /** Everything a command needs from the outside world, injected so commands stay testable. */
 export interface CommandContext {
@@ -16,6 +17,8 @@ export interface CommandContext {
   /** Serves the MCP server over stdio; it keeps running after the command returns. */
   readonly serveMcp: (context: ServerContext) => void;
   readonly source: SourceFor;
+  /** The prices of language model calls, refreshed at most daily during a sync. */
+  readonly prices: () => PriceBook;
   /** The variables each installed plugin declares. */
   readonly catalog: Catalog;
   /** The model plugins, whose instances are not connections. */

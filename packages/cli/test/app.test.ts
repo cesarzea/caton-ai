@@ -56,7 +56,10 @@ describe('caton status and help', () => {
     expect(await run(['status'], context)).toBe(1);
     await run(['sync'], context);
     expect(await run(['status'], context)).toBe(0);
-    expect(context.lines.at(-1)).toMatch(/^millennium\s+ok\s+2026-09-27T10:00:00.000Z$/u);
+    expect(context.lines).toContain('Model prices: downloaded 2026-09-27T00:00:00.000Z');
+    expect(context.lines.findLast(line => line.startsWith('millennium'))).toMatch(
+      /^millennium\s+ok\s+2026-09-27T10:00:00.000Z$/u,
+    );
   });
 
   it('prints usage, failing on unknown commands', async () => {
