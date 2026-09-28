@@ -1,75 +1,59 @@
-import {addMoney, money, negateMoney} from './money.ts';
+import {addMoney, money} from './money.ts';
 import type {Money} from './money.ts';
-import type {FinancialDocument} from './document.ts';
+import {splitByMonth} from './split.ts';
+import {spendItems} from './spend-items.ts';
+import type {LinkedDocument, SpendItem} from './spend-items.ts';
 import type {Transaction} from './transaction.ts';
 
-export interface MonthlyTotal {
+/**
+ * `cash` counts spending when money left; `accrual` spreads it over the service period its
+ * documents state, and counts it when it left otherwise.
+ */
+export type SpendBasis = 'cash' | 'accrual';
+
+export interface MonthlySpend {
   /** Calendar month, `YYYY-MM`. */
   readonly month: string;
-  /** Positive total of the money that left the accounts in that month. */
+  /** Spending known from accounts and from documents alone. */
   readonly total: Money;
-}
-
-/** A document with the transaction it was linked to, if any. */
-export interface LinkedDocument {
-  readonly document: FinancialDocument;
-  readonly transactionId: string | null;
-}
-
-export interface MonthlySpend extends MonthlyTotal {
   /** The part of `total` that only documents report, such as charges of a card no account reads. */
   readonly onlyInDocuments: Money;
+  /** Receipts no account shows, not in `total`: they may already be in a card's statement. */
+  readonly notSeen: Money;
 }
 
-type Totals = Map<string, {total: Money; onlyInDocuments: Money}>;
+type Bucket = {total: Money; onlyInDocuments: Money; notSeen: Money};
 
-function add(totals: Totals, day: string, amount: Money, onlyInDocuments: boolean): void {
-  const key = `${day.slice(0, 7)} ${amount.currency}`;
+function add(totals: Map<string, Bucket>, month: string, amount: Money, item: SpendItem): void {
+  const key = `${month} ${amount.currency}`;
   const zero = money(0, amount.currency);
-  const previous = totals.get(key) ?? {total: zero, onlyInDocuments: zero};
+  const bucket = totals.get(key) ?? {total: zero, onlyInDocuments: zero, notSeen: zero};
+  const plus = (value: Money, counts: boolean): Money => (counts ? addMoney(value, amount) : value);
   totals.set(key, {
-    total: addMoney(previous.total, amount),
-    onlyInDocuments: onlyInDocuments
-      ? addMoney(previous.onlyInDocuments, amount)
-      : previous.onlyInDocuments,
+    total: plus(bucket.total, item.source !== 'not-seen'),
+    onlyInDocuments: plus(bucket.onlyInDocuments, item.source === 'documents'),
+    notSeen: plus(bucket.notSeen, item.source === 'not-seen'),
   });
 }
 
-const isOutflow = ({status, bookingDate, amount}: Transaction): boolean =>
-  status === 'booked' && bookingDate !== null && amount.minorUnits < 0;
+function partsOf(item: SpendItem, basis: SpendBasis): {month: string; amount: Money}[] {
+  return basis === 'accrual' && item.period !== null
+    ? splitByMonth(item.amount, item.period.start, item.period.end)
+    : [{month: item.date.slice(0, 7), amount: item.amount}];
+}
 
-/** A verified charge that no transaction reports, such as one of a card no connection reads. */
-const onlyDocumented = ({document, transactionId}: LinkedDocument): boolean =>
-  document.kind === 'charge' &&
-  document.verified &&
-  document.amount !== null &&
-  transactionId === null;
-
-/**
- * Spending per calendar month and currency, oldest first: booked outflows except payments that
- * settle a statement (the card's own charges are the spending), plus verified charges that no
- * transaction reports, such as those of a card no connection reads.
- */
+/** Spending per calendar month and currency, oldest first, on either basis. */
 export function monthlySpend(
   transactions: readonly Transaction[],
   documents: readonly LinkedDocument[],
+  basis: SpendBasis = 'cash',
 ): MonthlySpend[] {
-  const settlements = new Set(
-    documents
-      .filter(({document}) => document.kind === 'statement')
-      .map(({transactionId}) => transactionId),
-  );
-  const totals: Totals = new Map();
-  transactions
-    .filter(transaction => isOutflow(transaction) && !settlements.has(transaction.id))
-    .forEach(({bookingDate, amount}) => {
-      add(totals, bookingDate ?? '', negateMoney(amount), false);
+  const totals = new Map<string, Bucket>();
+  for (const item of spendItems(transactions, documents)) {
+    partsOf(item, basis).forEach(({month, amount}) => {
+      add(totals, month, amount, item);
     });
-  documents.filter(onlyDocumented).forEach(({document}) => {
-    if (document.amount !== null) {
-      add(totals, document.issuedOn, document.amount, true);
-    }
-  });
+  }
   return [...totals.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, value]) => ({month: key.slice(0, 7), ...value}));

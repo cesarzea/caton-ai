@@ -35,9 +35,24 @@ describe('monthlySpend from transactions', () => {
     );
 
     expect(totals).toEqual([
-      {month: '2026-08', total: money(9_000, 'EUR'), onlyInDocuments: zero('EUR')},
-      {month: '2026-08', total: money(62, 'USD'), onlyInDocuments: zero('USD')},
-      {month: '2026-09', total: money(32_000, 'EUR'), onlyInDocuments: zero('EUR')},
+      {
+        month: '2026-08',
+        total: money(9_000, 'EUR'),
+        onlyInDocuments: zero('EUR'),
+        notSeen: zero('EUR'),
+      },
+      {
+        month: '2026-08',
+        total: money(62, 'USD'),
+        onlyInDocuments: zero('USD'),
+        notSeen: zero('USD'),
+      },
+      {
+        month: '2026-09',
+        total: money(32_000, 'EUR'),
+        onlyInDocuments: zero('EUR'),
+        notSeen: zero('EUR'),
+      },
     ]);
   });
 
@@ -77,7 +92,41 @@ describe('monthlySpend with documents', () => {
     );
 
     expect(totals).toEqual([
-      {month: '2026-09', total: money(2_800, 'EUR'), onlyInDocuments: money(2_500, 'EUR')},
+      {
+        month: '2026-09',
+        total: money(2_800, 'EUR'),
+        onlyInDocuments: money(2_500, 'EUR'),
+        notSeen: money(2_500, 'EUR'),
+      },
+    ]);
+  });
+});
+
+describe('monthlySpend on an accrual basis', () => {
+  it('spreads spending over the service period its document states', () => {
+    const yearly = transaction({
+      id: 'yearly',
+      bookingDate: '2026-07-01',
+      amount: money(-36_500, 'EUR'),
+    });
+    const invoice = document({
+      id: 'invoice',
+      kind: 'receipt',
+      amount: money(36_500, 'EUR'),
+      periodStart: '2026-07-01',
+      periodEnd: '2026-09-29',
+    });
+    const linked = [{document: invoice, transactionId: 'yearly'}];
+
+    expect(
+      monthlySpend([yearly], linked, 'cash').map(({month, total}) => [month, total.minorUnits]),
+    ).toEqual([['2026-07', 36_500]]);
+    expect(
+      monthlySpend([yearly], linked, 'accrual').map(({month, total}) => [month, total.minorUnits]),
+    ).toEqual([
+      ['2026-07', 12_434],
+      ['2026-08', 12_434],
+      ['2026-09', 11_632],
     ]);
   });
 });
