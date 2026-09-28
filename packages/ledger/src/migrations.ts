@@ -51,4 +51,24 @@ export const MIGRATIONS: readonly string[] = [
     error       TEXT
   ) STRICT;
   `,
+  `
+  CREATE TABLE model_calls (
+    id                 INTEGER PRIMARY KEY,
+    at                 TEXT NOT NULL,
+    connection         TEXT NOT NULL,
+    model_instance     TEXT NOT NULL,
+    provider           TEXT NOT NULL,
+    model              TEXT NOT NULL,
+    outcome            TEXT NOT NULL CHECK (outcome IN ('ok', 'failed')),
+    input_tokens       INTEGER,
+    cache_read_tokens  INTEGER,
+    cache_write_tokens INTEGER,
+    output_tokens      INTEGER,
+    cost_nano_usd      INTEGER,
+    cost_source        TEXT NOT NULL CHECK (cost_source IN ('reported', 'estimated', 'unknown')),
+    prices_date        TEXT
+  ) STRICT;
+
+  CREATE INDEX model_calls_by_date ON model_calls (at);
+  `,
 ];

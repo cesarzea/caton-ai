@@ -20,6 +20,8 @@ import {editableConfiguration, pluginInfos} from './configuration.ts';
 import {catalogOf, modelPluginsOf, sourceFactory} from './connectors.ts';
 import {terminalOutput} from './output.ts';
 import {configDirectory, dataDirectory} from './paths.ts';
+import {priceBook} from './prices.ts';
+import type {PriceBook} from './prices.ts';
 import {passphraseAsker} from './secrets.ts';
 import {terminalInput} from './terminal.ts';
 
@@ -30,6 +32,13 @@ const forgetConfig = (): void => {
 const config = (): CatonConfig => (loadedConfig ??= loadConfig(configDirectory(process.env)));
 const output = terminalOutput(process.stdout, process.stderr);
 const ledgerPath = (): string => join(dataDirectory(process.env), 'ledger.sqlite');
+let loadedPrices: PriceBook | undefined;
+const prices = (): PriceBook =>
+  (loadedPrices ??= priceBook(
+    join(dataDirectory(process.env), 'prices.json'),
+    () => new Date(),
+    fetch,
+  ));
 // Prompts go to stderr: stdout belongs to command output, and to the protocol under `caton mcp`.
 const terminal = terminalInput(process.stdin, process.stderr);
 const plugins = {
@@ -57,6 +66,7 @@ try {
     },
     readOnlyLedger: () => openLedgerReadOnly(ledgerPath()),
     serveMcp: serveOverStdio,
+    prices,
     source: sourceFactory(plugins, pluginDirectory, () => config().instances),
     catalog,
     modelPlugins,

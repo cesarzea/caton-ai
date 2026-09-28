@@ -3,6 +3,8 @@ import type {DatabaseSync} from 'node:sqlite';
 import type {Account, Balance, Transaction} from '@caton-ai/core';
 
 import {openDatabase, openDatabaseReadOnly} from './database.ts';
+import {insertModelCall, readModelSpend} from './model-calls.ts';
+import type {ModelCallRecord, ModelSpend} from './model-calls.ts';
 import {searchTransactions} from './query.ts';
 import type {TransactionPage, TransactionQuery} from './query.ts';
 import {readAccounts, readLastRun, readLatestBalances, readTransactions} from './read.ts';
@@ -19,6 +21,8 @@ export interface LedgerReader {
   /** Latest run of a source, successful or not: what decides whether totals are trustworthy. */
   lastRun(source: string): SyncRun | null;
   lastSuccessfulRun(source: string): SyncRun | null;
+  /** What language model calls made since `from` cost, per model. */
+  modelSpend(from: string): ModelSpend[];
   close(): void;
 }
 
@@ -26,6 +30,7 @@ export interface LedgerReader {
 export interface Ledger extends LedgerReader {
   saveSync(snapshot: SyncSnapshot): void;
   recordFailure(failure: SyncFailure): void;
+  recordModelCall(call: ModelCallRecord): void;
 }
 
 /** Opens (creating and migrating if needed) the ledger at `path`; `:memory:` for tests. */
@@ -38,6 +43,9 @@ export function openLedger(path: string): Ledger {
     },
     recordFailure: failure => {
       saveFailure(database, failure);
+    },
+    recordModelCall: call => {
+      insertModelCall(database, call);
     },
   };
 }
@@ -55,6 +63,7 @@ function readerOver(database: DatabaseSync): LedgerReader {
     latestBalances: () => readLatestBalances(database),
     lastRun: source => readLastRun(database, source, false),
     lastSuccessfulRun: source => readLastRun(database, source, true),
+    modelSpend: from => readModelSpend(database, from),
     close: () => {
       database.close();
     },

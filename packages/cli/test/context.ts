@@ -5,6 +5,7 @@ import type {Ledger} from '@caton-ai/ledger';
 import type {ServerContext} from '@caton-ai/mcp';
 
 import type {CommandContext} from '../src/context.ts';
+import type {PriceBook} from '../src/prices.ts';
 import {fakeConfigFile} from './fake-config-file.ts';
 import type {FakeConfigFile} from './fake-config-file.ts';
 import {fakeSecrets} from './fake-secrets.ts';
@@ -50,6 +51,12 @@ export const failingSource: TransactionSource = {
   listAccounts: () => Promise.reject(new Error('Enable Banking consent is not active')),
 };
 
+const FAKE_PRICES: PriceBook = {
+  state: () => ({date: '2026-09-27T00:00:00.000Z', error: null}),
+  refresh: () => Promise.resolve(),
+  price: () => ({costNanoUsd: 1_500_000, costSource: 'estimated', pricesDate: '2026-09-27'}),
+};
+
 export interface TestContext extends CommandContext, FakeSecrets, FakeConfigFile {
   readonly lines: string[];
   readonly errors: string[];
@@ -79,11 +86,10 @@ export function testContext(sources: Readonly<Record<string, TransactionSource>>
       }),
     source: instance => sources[instance.id] ?? workingSource,
     modelPlugins: new Set(['model-fake']),
+    prices: () => FAKE_PRICES,
     output: {line: text => lines.push(text), error: text => errors.push(text)},
     now: () => new Date('2026-09-27T10:00:00Z'),
     locale: 'en-US',
-    lines,
-    errors,
-    served,
+    ...{lines, errors, served},
   };
 }

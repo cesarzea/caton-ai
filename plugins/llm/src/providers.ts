@@ -1,12 +1,9 @@
-import {createAnthropic} from '@ai-sdk/anthropic';
-import {createGoogle} from '@ai-sdk/google';
-import {createOpenAI} from '@ai-sdk/openai';
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible';
-import {createOpenRouter} from '@openrouter/ai-sdk-provider';
 import type {ReasoningEffort} from '@caton-ai/core';
 import type {LanguageModel as SdkModel} from 'ai';
 
-import type {ProviderId} from './variables.ts';
+import {KEYED_FACTORIES} from './keyed.ts';
+import type {KeyedProvider, ProviderId} from './variables.ts';
 
 export interface ModelSettings {
   readonly provider: ProviderId;
@@ -46,18 +43,15 @@ function compatible(settings: ModelSettings, common: FetchOption, baseURL: strin
   );
 }
 
+const keyed =
+  (provider: KeyedProvider): Builder =>
+  (settings, common) =>
+    KEYED_FACTORIES[provider]({...common, apiKey: withKey(settings)})(settings.model);
+
 const BUILDERS: Readonly<Record<ProviderId, Builder>> = {
-  anthropic: (settings, common) =>
-    createAnthropic({...common, apiKey: withKey(settings)})(settings.model),
-  openai: (settings, common) =>
-    createOpenAI({...common, apiKey: withKey(settings)})(settings.model),
-  google: (settings, common) =>
-    createGoogle({...common, apiKey: withKey(settings)})(settings.model),
-  // OpenRouter reports the real cost of each call when asked to.
-  openrouter: (settings, common) =>
-    createOpenRouter({...common, apiKey: withKey(settings)})(settings.model, {
-      usage: {include: true},
-    }),
+  ...(Object.fromEntries(
+    Object.keys(KEYED_FACTORIES).map(provider => [provider, keyed(provider as KeyedProvider)]),
+  ) as Record<KeyedProvider, Builder>),
   ollama: (settings, common) => compatible(settings, common, `${settings.baseUrl ?? OLLAMA}/v1`),
   'openai-compatible': (settings, common) =>
     compatible(settings, common, required(settings.baseUrl, 'an address', settings.provider)),
