@@ -5,6 +5,8 @@ export const DEFAULT_PORT = 7170;
 
 /** Starts the local web interface; the process keeps serving after the command returns. */
 export async function serveCommand(context: CommandContext, port: number): Promise<number> {
+  // Opening the ledger for writing brings its schema up to date: the page only reads it.
+  context.ledger().close();
   const web = await context.startWeb(port, (names, lookup) =>
     syncConnections(context, lookup, names),
   );
