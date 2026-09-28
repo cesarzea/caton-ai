@@ -17,11 +17,18 @@ review everything since the last run.
 - **Incremental reading.**
   - Each sync reads only the emails received since the last run.
   - Per-instance state kept by the core records the folder's UIDVALIDITY and the last UID
-    processed, so no email is processed twice.
+    processed, so no email is processed twice. It is saved in the same transaction as what the
+    emails produced, and never by a failed run.
+  - Emails are processed in ascending UID. If the model fails midway, what was read is saved,
+    the state stops at the last email processed without a gap, and the run is still marked as
+    failed.
+  - Messages from the mailbox's own address or domain are skipped: invoices the user sends are
+    not costs.
   - The first run looks back a configurable number of days, 90 by default.
   - The mailbox stays read-only, as in ADR 0015.
 - **A local pre-filter comes first.** Only authenticated senders (DKIM/DMARC) with an amount and
-  currency, plus money-related words in several languages, pass. Most email never leaves the
+  currency, plus money-related words in several languages, pass. An unauthenticated email
+  never reaches a model. Most email never leaves the
   machine. The number of emails sent to a model is capped per sync and reported by
   `sync_status`.
 - **A language model classifies and extracts.** The kinds are: charge, refund,
@@ -36,11 +43,14 @@ review everything since the last run.
   action:
   - the model has no tools;
   - its output must match a strict schema;
-  - amount, date and merchant must appear literally in the email;
-  - an unauthenticated sender makes the item unverified.
+  - the model returns amount, date and merchant exactly as written, each must appear in the
+    email, and they are parsed locally;
+  - which card or account an email speaks for comes from its authenticated sender domain,
+    never from what the model read.
 - **Where results go** (with [ADR 0016](0016-financial-documents-and-reconciliation.md)):
-  - Only a charge alert for an account with no other feed, such as American Express, becomes a
-    movement.
+  - Only a charge or refund alert for a card with no other feed, such as American Express,
+    becomes a movement. The user lists those cards by the sender domain of their alerts, such
+    as `americanexpress.com`.
   - A receipt paid through a bank account is matched to the bank's charge and adds its
     details; it is never counted twice.
   - Anything else is a document to review.
