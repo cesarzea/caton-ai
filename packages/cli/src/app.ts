@@ -7,6 +7,7 @@ import {DEFAULT_PORT, serveCommand} from './commands/serve.ts';
 import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
+import {trialCommand} from './commands/trial.ts';
 import type {CommandContext} from './context.ts';
 
 const USAGE = [
@@ -18,6 +19,8 @@ const USAGE = [
   '                   includes transfers between your own accounts',
   '  documents [days] Receipts, invoices, notices and alerts read (default: 90 days)',
   '  status           Latest sync of every connection',
+  '  trial <connection> <model> <model>… [--emails N]',
+  '                   Read the same emails with each model and compare them, saving nothing',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
   '  secrets          Manage the encrypted secret store (caton secrets help)',
   '  config migrate   Convert the configuration file to instances, keeping a backup',
@@ -32,6 +35,7 @@ const COMMANDS = new Map<string, Command>([
   ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
   ['documents', (context, [days]) => documentsCommand(context, daysArgument(days))],
   ['status', context => statusCommand(context)],
+  ['trial', (context, args) => trialCommand(context, args)],
   ['mcp', context => mcpCommand(context)],
   ['secrets', (context, args) => secretsCommand(context, args)],
   ['config', (context, args) => configCommand(context, args)],

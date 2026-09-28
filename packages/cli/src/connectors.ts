@@ -22,6 +22,8 @@ import type {OnModelCall} from './model-calls.ts';
 interface SourceHooks {
   readonly onModelCall?: OnModelCall;
   readonly state?: ConnectorState;
+  /** A model instance to use instead of the one the connection chose, to compare models. */
+  readonly modelInstance?: string;
 }
 
 /** Builds an instance's source for one sync. */
@@ -121,22 +123,22 @@ export function sourceFactory(
 ): SourceFor {
   const byId = new Map(plugins.connectors.map(connector => [connector.manifest.id, connector]));
   const modelFor = modelResolver(plugins.models, instances);
-  return (instance, lookup, {onModelCall = () => undefined, state = NO_STATE} = {}) => {
+  return (instance, lookup, hooks = {}) => {
     const connector = byId.get(instance.plugin);
     if (connector === undefined) {
       throw notInstalled(instance, byId.keys());
     }
     const variables = resolveVariables(instance, connector.manifest.variables, lookup);
-    const model = chosenModel(connector, variables);
+    const model = hooks.modelInstance ?? chosenModel(connector, variables);
     const environment: ConnectorEnvironment = {
       pluginDirectory: pluginDirectory(instance.plugin),
-      state,
+      state: hooks.state ?? NO_STATE,
       ...(model === undefined
         ? {}
         : {
             model: modelFor(instance, model, lookup, {
               reasoning: reasoningOf(connector, instance, variables),
-              onCall: onModelCall,
+              onCall: hooks.onModelCall ?? (() => undefined),
             }),
           }),
     };
