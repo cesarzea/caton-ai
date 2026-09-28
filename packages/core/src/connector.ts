@@ -65,6 +65,17 @@ export interface ConnectorEnvironment {
   readonly pluginDirectory: string;
   /** The language model chosen in the connector's `model` variable, if it declares one. */
   readonly model?: LanguageModel;
+  /** What the instance remembers between syncs, such as how far it has read a mailbox. */
+  readonly state: ConnectorState;
+}
+
+/**
+ * A small JSON value kept per instance. `write` takes effect only if the sync saves what was
+ * read with it, in the same transaction; a failed sync keeps the previous value.
+ */
+export interface ConnectorState {
+  read(): unknown;
+  write(value: unknown): void;
 }
 
 /** A connector plugin: turns one configured instance into a source of transactions. */

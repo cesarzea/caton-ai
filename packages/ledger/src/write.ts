@@ -1,8 +1,9 @@
 import type {DatabaseSync} from 'node:sqlite';
 
-import type {Account, Balance, Transaction} from '@caton-ai/core';
+import type {Account, Balance, FinancialDocument, Transaction} from '@caton-ai/core';
 
 import {inTransaction} from './database.ts';
+import {upsertDocument, writeState} from './documents.ts';
 
 /** Everything one sync read from one account. */
 export interface AccountSnapshot {
@@ -16,6 +17,11 @@ export interface SyncSnapshot {
   readonly startedAt: Date;
   readonly finishedAt: Date;
   readonly accounts: readonly AccountSnapshot[];
+  readonly documents?: readonly FinancialDocument[];
+  /** The instance's state after reading this, saved with it (ADR 0020). */
+  readonly state?: {readonly value: unknown};
+  /** Set when the source failed after reading part of its data: saved, and the run failed. */
+  readonly error?: string | null;
 }
 
 export interface SyncFailure {
@@ -44,7 +50,13 @@ export function saveSnapshot(database: DatabaseSync, snapshot: SyncSnapshot): vo
         insertBalance(database, item, seenAt);
       });
     }
-    insertRun(database, {...snapshot, error: null});
+    snapshot.documents?.forEach(document => {
+      upsertDocument(database, snapshot.source, document, seenAt);
+    });
+    if (snapshot.state !== undefined) {
+      writeState(database, snapshot.source, snapshot.state.value, seenAt);
+    }
+    insertRun(database, {...snapshot, error: snapshot.error ?? null});
   });
 }
 

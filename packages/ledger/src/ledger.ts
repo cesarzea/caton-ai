@@ -1,8 +1,9 @@
 import type {DatabaseSync} from 'node:sqlite';
 
-import type {Account, Balance, Transaction} from '@caton-ai/core';
+import type {Account, Balance, DocumentLink, FinancialDocument, Transaction} from '@caton-ai/core';
 
 import {openDatabase, openDatabaseReadOnly} from './database.ts';
+import {insertLinks, readDocuments, readState, readUnlinkedDocuments} from './documents.ts';
 import {insertModelCall, readModelSpend} from './model-calls.ts';
 import type {ModelCallRecord, ModelSpend} from './model-calls.ts';
 import {searchTransactions} from './query.ts';
@@ -21,6 +22,10 @@ export interface LedgerReader {
   /** Latest run of a source, successful or not: what decides whether totals are trustworthy. */
   lastRun(source: string): SyncRun | null;
   lastSuccessfulRun(source: string): SyncRun | null;
+  documents(fromDate: string): FinancialDocument[];
+  unlinkedDocuments(): FinancialDocument[];
+  /** The value a connection kept at its last saved sync, or null. */
+  connectorState(source: string): unknown;
   /** What language model calls made since `from` cost, per model. */
   modelSpend(from: string): ModelSpend[];
   close(): void;
@@ -31,6 +36,8 @@ export interface Ledger extends LedgerReader {
   saveSync(snapshot: SyncSnapshot): void;
   recordFailure(failure: SyncFailure): void;
   recordModelCall(call: ModelCallRecord): void;
+  /** Links made by matching; a document already linked keeps its link. */
+  linkDocuments(links: readonly DocumentLink[], linkedAt: Date): void;
 }
 
 /** Opens (creating and migrating if needed) the ledger at `path`; `:memory:` for tests. */
@@ -46,6 +53,9 @@ export function openLedger(path: string): Ledger {
     },
     recordModelCall: call => {
       insertModelCall(database, call);
+    },
+    linkDocuments: (links, linkedAt) => {
+      insertLinks(database, links, linkedAt.toISOString());
     },
   };
 }
@@ -64,6 +74,9 @@ function readerOver(database: DatabaseSync): LedgerReader {
     lastRun: source => readLastRun(database, source, false),
     lastSuccessfulRun: source => readLastRun(database, source, true),
     modelSpend: from => readModelSpend(database, from),
+    documents: fromDate => readDocuments(database, fromDate),
+    unlinkedDocuments: () => readUnlinkedDocuments(database),
+    connectorState: source => readState(database, source),
     close: () => {
       database.close();
     },

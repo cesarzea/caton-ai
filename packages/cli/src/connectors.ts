@@ -2,6 +2,7 @@ import {REASONING_EFFORTS} from '@caton-ai/core';
 import type {
   Connector,
   ConnectorEnvironment,
+  ConnectorState,
   LanguageModel,
   ModelOptions,
   ModelProvider,
@@ -17,12 +18,21 @@ import type {Instance} from './config.ts';
 import {recorded} from './model-calls.ts';
 import type {OnModelCall} from './model-calls.ts';
 
-/** Builds an instance's source; calls to its model, if it has one, are reported to `onModelCall`. */
+/** What a sync lends a source: where its model calls are reported, and its state. */
+export interface SourceHooks {
+  readonly onModelCall?: OnModelCall;
+  readonly state?: ConnectorState;
+}
+
+/** Builds an instance's source for one sync. */
 export type SourceFor = (
   instance: Instance,
   lookup: Lookup,
-  onModelCall?: OnModelCall,
+  hooks?: SourceHooks,
 ) => TransactionSource;
+
+/** State for a source built outside a sync: nothing is kept. */
+const NO_STATE: ConnectorState = {read: () => null, write: () => undefined};
 
 /** The installed plugins: connectors sync money data, model providers read text for them. */
 export interface Plugins {
@@ -111,7 +121,7 @@ export function sourceFactory(
 ): SourceFor {
   const byId = new Map(plugins.connectors.map(connector => [connector.manifest.id, connector]));
   const modelFor = modelResolver(plugins.models, instances);
-  return (instance, lookup, onModelCall = () => undefined) => {
+  return (instance, lookup, {onModelCall = () => undefined, state = NO_STATE} = {}) => {
     const connector = byId.get(instance.plugin);
     if (connector === undefined) {
       throw notInstalled(instance, byId.keys());
@@ -120,6 +130,7 @@ export function sourceFactory(
     const model = chosenModel(connector, variables);
     const environment: ConnectorEnvironment = {
       pluginDirectory: pluginDirectory(instance.plugin),
+      state,
       ...(model === undefined
         ? {}
         : {

@@ -71,4 +71,39 @@ export const MIGRATIONS: readonly string[] = [
 
   CREATE INDEX model_calls_by_date ON model_calls (at);
   `,
+  `
+  CREATE TABLE documents (
+    id            TEXT PRIMARY KEY,
+    source        TEXT NOT NULL,
+    kind          TEXT NOT NULL
+      CHECK (kind IN ('charge', 'refund', 'receipt', 'renewal', 'cancellation', 'statement')),
+    issuer        TEXT NOT NULL,
+    amount_minor  INTEGER,
+    currency      TEXT,
+    issued_on     TEXT NOT NULL,
+    period_start  TEXT,
+    period_end    TEXT,
+    due_on        TEXT,
+    reference     TEXT,
+    verified      INTEGER NOT NULL CHECK (verified IN (0, 1)),
+    origin        TEXT NOT NULL,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at  TEXT NOT NULL
+  ) STRICT;
+
+  CREATE INDEX documents_by_date ON documents (issued_on);
+
+  CREATE TABLE document_links (
+    document_id    TEXT PRIMARY KEY REFERENCES documents (id),
+    transaction_id TEXT NOT NULL REFERENCES transactions (id),
+    linked_by      TEXT NOT NULL CHECK (linked_by IN ('auto', 'user')),
+    linked_at      TEXT NOT NULL
+  ) STRICT;
+
+  CREATE TABLE connector_state (
+    source     TEXT PRIMARY KEY,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  ) STRICT;
+  `,
 ];

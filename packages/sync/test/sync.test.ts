@@ -1,4 +1,4 @@
-import {currencyCode, money} from '@caton-ai/core';
+import {currencyCode, money, PartialReadError} from '@caton-ai/core';
 import type {Account, Transaction, TransactionSource} from '@caton-ai/core';
 import {openLedger} from '@caton-ai/ledger';
 import {describe, expect, it} from 'vitest';
@@ -58,7 +58,7 @@ describe('syncConnection', () => {
       now: () => new Date('2026-09-28T10:00:00Z'),
     });
 
-    expect(first).toEqual({name: 'bank', ok: true, accounts: 1, transactions: 1});
+    expect(first).toEqual({name: 'bank', ok: true, accounts: 1, transactions: 1, documents: 0});
     expect(requestedFrom).toEqual(['2026-06-29', '2026-09-17']);
     expect(ledger.transactions('2026-01-01')).toEqual([movement]);
   });
@@ -88,5 +88,39 @@ describe('syncConnection failures', () => {
 
     expect(outcome).toEqual({name: 'bank', ok: false, error: 'Invalid settings'});
     expect(ledger.lastRun('bank')?.outcome).toBe('failed');
+  });
+});
+
+describe('sources with documents', () => {
+  it('save what a partial read got, with its state, and report the failure', async () => {
+    const ledger = openLedger(':memory:');
+    const document = {
+      id: 'email:<1@x>',
+      kind: 'receipt',
+      issuer: 'X',
+      amount: money(100, 'EUR'),
+      issuedOn: '2026-09-10',
+      periodStart: null,
+      periodEnd: null,
+      dueOn: null,
+      reference: null,
+      verified: true,
+      origin: 'email',
+    } as const;
+    const source: TransactionSource = {
+      ...fakeSource([]),
+      listDocuments: () => Promise.reject(new PartialReadError('the model stopped', [document])),
+    };
+
+    const outcome = await syncConnection({
+      name: 'mail',
+      source: () => source,
+      ledger,
+      state: () => ({value: {uid: 7}}),
+    });
+
+    expect(outcome).toEqual({name: 'mail', ok: false, error: 'the model stopped'});
+    expect(ledger.documents('2026-01-01')).toEqual([document]);
+    expect(ledger.connectorState('mail')).toEqual({uid: 7});
   });
 });

@@ -4,6 +4,7 @@ export type {
   Connector,
   ConnectorEnvironment,
   ConnectorManifest,
+  ConnectorState,
   ModelOptions,
   ModelProvider,
   VariableCondition,
@@ -13,6 +14,10 @@ export type {
 export {topCounterparties} from './counterparties.ts';
 export type {CounterpartyTotal} from './counterparties.ts';
 export {moneyFromDecimal, moneyToDecimal} from './decimal.ts';
+export {DOCUMENT_KINDS, PartialReadError} from './document.ts';
+export type {DocumentKind, FinancialDocument} from './document.ts';
+export {matchDocuments} from './matching.ts';
+export type {DocumentLink} from './matching.ts';
 export {ModelError, REASONING_EFFORTS} from './model.ts';
 export type {
   Extraction,
