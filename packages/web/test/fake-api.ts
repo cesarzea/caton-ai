@@ -14,6 +14,7 @@ const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
     error: null,
+    changedSinceSync: false,
   },
   {
     id: 'amex',
@@ -23,6 +24,7 @@ const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T11:00:00.000Z',
     lastSuccessfulSyncAt: null,
     error: '1 email(s) could not be read',
+    changedSinceSync: true,
   },
 ];
 
@@ -84,8 +86,36 @@ function sessionOf(api: FakeState, record: Record): Pick<Api, 'signIn' | 'status
     },
     status: () =>
       api.signedIn
-        ? Promise.resolve({store: api.store, connections: CONNECTIONS})
+        ? Promise.resolve({store: api.store, connections: CONNECTIONS, syncing: api.syncing})
         : Promise.reject(new ApiError(401, 'Sign in')),
+  };
+}
+
+function reportsOf(api: FakeState): Pick<Api, 'spend' | 'documents' | 'upcoming'> {
+  return {
+    spend: () => Promise.resolve(api.reports.spend),
+    documents: () => Promise.resolve(api.reports.documents),
+    upcoming: () => Promise.resolve(api.reports.upcoming),
+  };
+}
+
+function initialState(calls: unknown[][], store: Partial<StoreStatus>): FakeState {
+  return {
+    calls,
+    stored: new Map<string, string>(),
+    required: new Map<string, string[]>(),
+    configured: [
+      {
+        id: 'amex',
+        title: 'Amex',
+        plugin: 'email-alerts',
+        settings: {'imap-user': 'me@example.com'},
+      },
+    ],
+    store: {state: 'missing', keySource: null, error: null, ...store},
+    signedIn: true,
+    syncing: [],
+    reports: {spend: {cash: [], accrual: []}, documents: [], upcoming: []},
   };
 }
 
@@ -96,25 +126,12 @@ export function fakeApi(store: Partial<StoreStatus> = {}): FakeApi {
     calls.push(call);
     return Promise.resolve();
   };
-  const api: FakeState = {
-    calls,
-    stored: new Map<string, string>(),
-    required: new Map<string, string[]>(),
-    configured: [
-      {
-        id: 'amex',
-        title: 'Amex',
-        plugin: 'email-alerts',
-        settings: {'imap-user': 'me@example.com', 'imap-port': 993},
-      },
-    ],
-    store: {state: 'missing', keySource: null, error: null, ...store},
-    signedIn: true,
-  };
+  const api = initialState(calls, store);
   return Object.assign(api, {
     ...sessionOf(api, record),
     ...storeOf(api, record),
     ...secretsOf(api, record),
     ...configurationOf(api, record),
+    ...reportsOf(api),
   });
 }

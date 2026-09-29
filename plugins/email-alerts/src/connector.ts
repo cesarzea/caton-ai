@@ -3,9 +3,7 @@ import * as z from 'zod';
 
 import {imapMailbox} from './imap.ts';
 import {connectImapFlow} from './imapflow-session.ts';
-import {loadRecipes} from './library.ts';
-import type {Recipe} from './recipe.ts';
-import {createEmailAlertsSource} from './source.ts';
+import {createEmailSource} from './source.ts';
 import {VARIABLES} from './variables.ts';
 
 const variablesSchema = z.object({
@@ -15,27 +13,21 @@ const variablesSchema = z.object({
   'imap-password': z.string().min(1),
   'imap-folder': z.string().min(1).optional(),
   'auth-server': z.string().min(1),
-  recipes: z.array(z.string()).min(1),
+  'backfill-days': z.number().int().min(1).max(3_650),
+  'max-per-sync': z.number().int().min(1).max(10_000),
+  senders: z.array(z.string().min(1)).default([]),
 });
 
-function selected(library: readonly Recipe[], ids: readonly string[]): Recipe[] {
-  return ids.map(id => {
-    const recipe = library.find(candidate => candidate.id === id);
-    if (recipe === undefined) {
-      const known = library.map(candidate => candidate.id).join(', ') || 'none';
-      throw new TypeError(`Unknown email recipe "${id}"; the library has: ${known}`);
-    }
-    return recipe;
-  });
-}
+const DAY_MS = 86_400_000;
 
-/** Card alerts, statements and receipts received by email, read-only over IMAP with recipes. */
+/** Any email about money, read-only over IMAP and understood by the chosen model (ADR 0020). */
 export const emailAlertsConnector: Connector = {
   manifest: {
     id: 'email-alerts',
     version: '0.0.0',
-    title: 'Email alerts',
-    description: 'Card alerts and receipts received by email, read-only over IMAP.',
+    title: 'Email',
+    description:
+      'Any email about money, such as receipts, invoices, renewals, cancellations, statements and card alerts, read-only over IMAP.',
     network: ['variable:imap-host'],
     variables: VARIABLES,
   },
@@ -43,21 +35,27 @@ export const emailAlertsConnector: Connector = {
     const parsed = variablesSchema.safeParse(variables);
     if (!parsed.success) {
       const wrong = [...new Set(parsed.error.issues.map(issue => String(issue.path[0])))];
-      throw new TypeError(`Invalid email alerts variables: ${wrong.join(', ')}`);
+      throw new TypeError(`Invalid email variables: ${wrong.join(', ')}`);
     }
+    const {data} = parsed;
     const {
       'imap-host': host,
       'imap-port': port,
       'imap-user': user,
       'imap-password': password,
-    } = parsed.data;
-    return createEmailAlertsSource({
-      authServer: parsed.data['auth-server'],
-      recipes: selected(loadRecipes(environment.pluginDirectory), parsed.data.recipes),
+    } = data;
+    return createEmailSource({
       mailbox: imapMailbox({
-        folder: parsed.data['imap-folder'],
+        folder: data['imap-folder'],
         connect: () => connectImapFlow({host, port, user, password}),
       }),
+      model: environment.model,
+      state: environment.state,
+      since: new Date(Date.now() - data['backfill-days'] * DAY_MS),
+      ownAddress: user,
+      authServer: data['auth-server'],
+      senders: data.senders.map(domain => domain.toLowerCase().replace(/^@/u, '')),
+      maxPerSync: data['max-per-sync'],
     });
   },
 };

@@ -446,3 +446,11 @@ h2 {
   font-size: 13px;
   margin-bottom: 8px;
 }
+
+.heading-actions,
+.row-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}

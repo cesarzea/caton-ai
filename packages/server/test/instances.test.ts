@@ -43,17 +43,26 @@ describe('instance ids', () => {
     expect(
       (await api('PUT', '/api/instances/amex-caton', {title: 'Amex (work)', settings: {}})).status,
     ).toBe(204);
-    expect(await instances(api)).toEqual([
-      {id: 'amex-caton', title: 'Amex (work)', plugin: 'email-alerts', settings: {}},
-      {
-        id: 'amex-caton-2',
-        title: 'amex caton',
-        plugin: 'email-alerts',
-        settings: {'imap-user': 'me@example.com'},
-      },
-    ]);
+    expect(await instances(api)).toEqual(EXPECTED);
   });
 });
+
+const EXPECTED = [
+  {
+    id: 'amex-caton',
+    title: 'Amex (work)',
+    plugin: 'email-alerts',
+    settings: {},
+    changedAt: expect.any(String) as unknown,
+  },
+  {
+    id: 'amex-caton-2',
+    title: 'amex caton',
+    plugin: 'email-alerts',
+    settings: {'imap-user': 'me@example.com'},
+    changedAt: expect.any(String) as unknown,
+  },
+];
 
 describe('instance requests', () => {
   it('never put a secret, or an undeclared setting, in the configuration', async () => {
@@ -95,7 +104,16 @@ describe('removing an instance', () => {
     await api('PUT', `/api/secrets/${encodeURIComponent('email-alerts:amex:imap-password')}`, {
       value: '${work-imap}',
     });
+    const created = JSON.parse((await api('GET', '/api/instances')).body) as {
+      instances: {changedAt: string}[];
+    };
+    await new Promise(resolve => setTimeout(resolve, 5));
+    await api('PUT', `/api/secrets/${encodeURIComponent('email-alerts:amex:imap-password')}`, {
+      value: 'new',
+    });
     await api('PUT', '/api/secrets/work-imap', {value: 'pw'});
+    const touched = JSON.parse((await api('GET', '/api/instances')).body) as typeof created;
+    expect(touched.instances[0]?.changedAt).not.toBe(created.instances[0]?.changedAt);
 
     expect((await api('DELETE', '/api/instances/amex')).status).toBe(204);
     const {secrets} = secretListSchema.parse(JSON.parse((await api('GET', '/api/secrets')).body));

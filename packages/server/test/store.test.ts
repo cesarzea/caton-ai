@@ -34,6 +34,7 @@ describe('secret store creation', () => {
     expect(await statusOf(api)).toEqual({
       store: {state: 'missing', keySource: null, error: null},
       connections: CONNECTIONS,
+      syncing: [],
     });
     expect((await api('POST', '/api/store/init', {source: 'file', path: 'key'})).status).toBe(400);
     expect((await api('POST', '/api/store/init', keyFile())).status).toBe(204);

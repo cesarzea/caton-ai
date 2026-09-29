@@ -4,7 +4,10 @@ import {enableBankingConnector} from '../src/index.ts';
 import {privateKeyPem} from './fake-api.ts';
 
 const {manifest} = enableBankingConnector;
-const environment = {pluginDirectory: '/nowhere'};
+const environment = {
+  pluginDirectory: '/nowhere',
+  state: {read: () => null, write: () => undefined},
+};
 
 /** A value for every declared variable, so the declared contract and the validation cannot drift. */
 const declared = Object.fromEntries(

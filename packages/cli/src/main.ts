@@ -21,6 +21,7 @@ import {catalogOf, modelPluginsOf, sourceFactory} from './connectors.ts';
 import {terminalOutput} from './output.ts';
 import {configDirectory, dataDirectory} from './paths.ts';
 import {priceBook} from './prices.ts';
+import {ledgerReports} from './reports.ts';
 import type {PriceBook} from './prices.ts';
 import {passphraseAsker} from './secrets.ts';
 import {terminalInput} from './terminal.ts';
@@ -76,9 +77,14 @@ try {
       open: () => openVault(configDirectory(process.env), keyDependencies),
     },
     readSecretValue: terminal.secretValue,
-    startWeb: port =>
+    startWeb: (port, sync) =>
       startServer({
         port,
+        sync,
+        reports: ledgerReports(
+          () => (existsSync(ledgerPath()) ? openLedgerReadOnly(ledgerPath()) : null),
+          () => new Date(),
+        ),
         secretsDirectory: configDirectory(process.env),
         credentials: keyDependencies.credentials,
         connections: () =>

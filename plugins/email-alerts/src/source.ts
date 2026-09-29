@@ -1,69 +1,48 @@
-import type {Account, TransactionSource} from '@caton-ai/core';
+import {PartialReadError} from '@caton-ai/core';
+import type {ConnectorState, TransactionSource} from '@caton-ai/core';
+import * as z from 'zod';
 
-import {SOURCE_NAME, accountOf, readAlerts} from './alerts.ts';
-import type {AlertsOptions, AlertsReport} from './alerts.ts';
-import type {MailMessage} from './message.ts';
-import type {Recipe} from './recipe.ts';
+import type {MailboxCursor} from './imap.ts';
+import {readMailbox} from './reader.ts';
+import type {ReadOptions, ReadResult} from './reader.ts';
 
-/** Where messages come from: IMAP in production, a fake in tests. */
-export interface Mailbox {
-  /** Messages from any of `domains` (or their subdomains) received on or after `since`. */
-  messagesFrom(domains: readonly string[], since: Date): Promise<readonly MailMessage[]>;
+const SOURCE_NAME = 'email-alerts';
+
+const cursorSchema = z.object({
+  uidValidity: z.number().int().positive(),
+  lastUid: z.number().int().positive(),
+});
+
+export interface EmailSourceOptions extends Omit<ReadOptions, 'cursor'> {
+  readonly state: ConnectorState;
 }
-
-export interface EmailAlertsSourceOptions extends AlertsOptions {
-  readonly mailbox: Mailbox;
-  readonly recipes: readonly Recipe[];
-}
-
-/** Alerts can be sent a little after the operation they describe. */
-const SEARCH_MARGIN_DAYS = 3;
-const DAY_MS = 86_400_000;
 
 /**
- * Transactions read from email alerts. A message that a recipe is meant for but cannot read
- * fails the whole sync, so that a format change shows up instead of silently losing movements.
+ * Documents read from email: never movements, which only accounts report. The mailbox is read
+ * once per sync; the cursor is written for the host to save with what was read.
  */
-export function createEmailAlertsSource(options: EmailAlertsSourceOptions): TransactionSource {
-  const accounts = [
-    ...new Map(
-      options.recipes.map(recipe => {
-        const account = accountOf(recipe);
-        return [account.id, account];
-      }),
-    ).values(),
-  ];
-  const reports = new Map<string, Promise<AlertsReport>>();
-  const reportFrom = (fromDate: string): Promise<AlertsReport> => {
-    const cached = reports.get(fromDate) ?? read(options, fromDate);
-    reports.set(fromDate, cached);
-    return cached;
-  };
+export function createEmailSource(options: EmailSourceOptions): TransactionSource {
+  const saved = cursorSchema.safeParse(options.state.read());
+  const cursor: MailboxCursor | null = saved.success ? saved.data : null;
+  let reading: Promise<ReadResult> | undefined;
+  const read = (): Promise<ReadResult> =>
+    (reading ??= readMailbox({...options, cursor}).then(result => {
+      if (result.cursor !== null) {
+        options.state.write(result.cursor);
+      }
+      return result;
+    }));
   return {
     name: SOURCE_NAME,
-    listAccounts: () => Promise.resolve(accounts),
-    listTransactions: async (account: Account, fromDate: string) =>
-      (await reportFrom(fromDate)).transactions.filter(
-        transaction =>
-          transaction.accountId === account.id && (transaction.bookingDate ?? '') >= fromDate,
-      ),
+    listAccounts: () => Promise.resolve([]),
+    listTransactions: () => Promise.resolve([]),
     listBalances: () => Promise.resolve([]),
+    listDocuments: async () => {
+      const result = await read();
+      if (result.error !== null) {
+        throw new PartialReadError(result.error, result.documents);
+      }
+      return result.documents;
+    },
   };
-}
-
-async function read(options: EmailAlertsSourceOptions, fromDate: string): Promise<AlertsReport> {
-  const since = new Date(Date.parse(fromDate) - SEARCH_MARGIN_DAYS * DAY_MS);
-  const domains = [...new Set(options.recipes.map(recipe => recipe.senderDomain))];
-  const report = readAlerts(
-    await options.mailbox.messagesFrom(domains, since),
-    options.recipes,
-    options,
-  );
-  if (report.unreadable.length > 0) {
-    throw new Error(
-      `${String(report.unreadable.length)} email(s) could not be read with their recipe; ` +
-        `fix the recipe: ${report.unreadable.join('; ')}`,
-    );
-  }
-  return report;
 }

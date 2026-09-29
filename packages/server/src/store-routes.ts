@@ -9,10 +9,15 @@ import {
 
 import {HttpError, jsonBody, sendJson} from './http.ts';
 import type {ApiContext, Handler} from './api-context.ts';
+import {touchInstanceOf} from './instances.ts';
 import {secretEntries} from './secret-list.ts';
 
-export const status: Handler = (_request, response, {store, connections}) => {
-  sendJson(response, 200, {store: store.status(), connections: connections()});
+export const status: Handler = (_request, response, {store, connections, syncer}) => {
+  sendJson(response, 200, {
+    store: store.status(),
+    connections: connections(),
+    syncing: [...syncer.running()],
+  });
   return Promise.resolve();
 };
 
@@ -68,6 +73,7 @@ export async function secretRoute(
   if (request.method === 'PUT') {
     const {value} = await jsonBody(request, setSecretRequestSchema);
     await context.store.vault().set(name, value);
+    touchInstanceOf(context.configuration, name);
     sendJson(response, 204);
   } else if (request.method === 'DELETE') {
     sendJson(response, (await context.store.vault().remove(name)) ? 204 : 404);

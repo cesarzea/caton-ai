@@ -8,6 +8,7 @@ import {Connections} from './components/Connections.tsx';
 import {CreateStore} from './components/CreateStore.tsx';
 import {Configured} from './components/Configured.tsx';
 import {Layout, Notice} from './components/Layout.tsx';
+import {Reports} from './components/Reports.tsx';
 import {Unlock} from './components/Unlock.tsx';
 import {text} from './text.ts';
 
@@ -49,7 +50,7 @@ type ReadyProps = Readonly<{api: Api; status: Status; reload: () => void}>;
 
 /** What the state of the secret store allows: creating it, unlocking it, or configuring. */
 function StorePanels({api, status, reload}: ReadyProps): ReactNode {
-  const {store, connections} = status;
+  const {store, connections, syncing} = status;
   switch (store.state) {
     case 'missing':
       return (
@@ -66,7 +67,9 @@ function StorePanels({api, status, reload}: ReadyProps): ReactNode {
         </>
       );
     case 'unlocked':
-      return <Configured api={api} connections={connections} onChanged={reload} />;
+      return (
+        <Configured api={api} connections={connections} syncing={syncing} onChanged={reload} />
+      );
   }
 }
 
@@ -76,15 +79,38 @@ function Ready({api, status, reload}: ReadyProps): ReactNode {
   const lock = (): void => {
     void api.lock().then(reload);
   };
+  const version = [
+    ...status.syncing,
+    ...status.connections.map(connection => connection.lastRunAt ?? ''),
+  ].join(' ');
   return (
     <Layout {...(lockable ? {onLock: lock} : {})}>
+      <Reports api={api} version={version} />
       <StorePanels api={api} status={status} reload={reload} />
     </Layout>
   );
 }
 
+/** How often the page asks for the status while a sync runs. */
+const SYNC_POLL_MS = 1_500;
+
+/** Reloads the status while a sync runs, so the page follows it to its end. */
+function useSyncPolling(view: View, load: () => Promise<void>): void {
+  const syncing = view.kind === 'ready' && view.status.syncing.length > 0;
+  useEffect(() => {
+    if (!syncing) {
+      return undefined;
+    }
+    const timer = setTimeout(() => void load(), SYNC_POLL_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [syncing, view, load]);
+}
+
 export function App({api, address}: Readonly<{api: Api; address: Address}>): ReactNode {
   const [view, load] = useStatus(api, address);
+  useSyncPolling(view, load);
   if (view.kind === 'ready') {
     return (
       <Ready

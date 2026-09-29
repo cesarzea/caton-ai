@@ -14,16 +14,15 @@ function formValue(value: unknown): string {
   return typeof value === 'string' || typeof value === 'number' ? String(value) : '';
 }
 
-/** The initial form values of an instance, or of a new one from the plugin's defaults. */
+/** The initial form values of an instance, its unset variables at the plugin's defaults. */
 export function initialSettings(
   plugin: PluginInfo,
   instance: InstanceInfo | undefined,
 ): Record<string, string> {
   const values: Record<string, string> = {};
   for (const spec of plugin.variables.filter(variable => !isSecret(variable))) {
-    values[spec.key] = formValue(
-      instance === undefined ? spec.default : instance.settings[spec.key],
-    );
+    // A variable added to the plugin after the instance was saved shows its default too.
+    values[spec.key] = formValue(instance?.settings[spec.key] ?? spec.default);
   }
   return values;
 }

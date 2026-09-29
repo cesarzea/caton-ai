@@ -1,21 +1,31 @@
 import {accountsCommand} from './commands/accounts.ts';
 import {configCommand} from './commands/config.ts';
+import {documentsCommand} from './commands/documents.ts';
 import {mcpCommand} from './commands/mcp.ts';
 import {secretsCommand} from './commands/secrets.ts';
 import {DEFAULT_PORT, serveCommand} from './commands/serve.ts';
 import {spendCommand} from './commands/spend.ts';
 import {statusCommand} from './commands/status.ts';
 import {syncCommand} from './commands/sync.ts';
+import {trialCommand} from './commands/trial.ts';
+import {upcomingCommand} from './commands/upcoming.ts';
 import type {CommandContext} from './context.ts';
 
 const USAGE = [
   'Usage: caton <command>',
   '',
-  '  sync             Fetch accounts, movements and balances from every connection',
+  '  sync [connection…]  Fetch accounts, movements, balances and documents from every',
+  '                   connection, or only the ones named',
   '  accounts         List accounts with their latest balance',
-  '  spend [months]   Money leaving your accounts per month, cash basis (default: 3 months);',
-  '                   includes transfers between your own accounts',
+  '  spend [months] [--accrual]',
+  '                   Spending per month (default: 3 months): outflows except card statement',
+  '                   payments, plus card charges only documents report; when paid, or spread',
+  '                   over the period paid for; transfers between your own accounts still count',
+  '  upcoming         Charges renewal notices announce, soonest first',
+  '  documents [days] Receipts, invoices, notices and alerts read (default: 90 days)',
   '  status           Latest sync of every connection',
+  '  trial <connection> <model> <model>… [--emails N]',
+  '                   Read the same emails with each model and compare them, saving nothing',
   '  mcp              Serve the ledger read-only to AI assistants over MCP (stdio)',
   '  secrets          Manage the encrypted secret store (caton secrets help)',
   '  config migrate   Convert the configuration file to instances, keeping a backup',
@@ -25,10 +35,21 @@ const USAGE = [
 type Command = (context: CommandContext, args: readonly string[]) => number | Promise<number>;
 
 const COMMANDS = new Map<string, Command>([
-  ['sync', context => syncCommand(context)],
+  ['sync', (context, args) => syncCommand(context, args)],
   ['accounts', context => accountsCommand(context)],
-  ['spend', (context, [months]) => spendCommand(context, monthsArgument(months))],
+  [
+    'spend',
+    (context, args) =>
+      spendCommand(
+        context,
+        monthsArgument(args.find(arg => !arg.startsWith('--'))),
+        args.includes('--accrual') ? 'accrual' : 'cash',
+      ),
+  ],
+  ['upcoming', context => upcomingCommand(context)],
+  ['documents', (context, [days]) => documentsCommand(context, daysArgument(days))],
   ['status', context => statusCommand(context)],
+  ['trial', (context, args) => trialCommand(context, args)],
   ['mcp', context => mcpCommand(context)],
   ['secrets', (context, args) => secretsCommand(context, args)],
   ['config', (context, args) => configCommand(context, args)],
@@ -55,6 +76,11 @@ function usage(context: CommandContext, exitCode: number): number {
 function monthsArgument(value: string | undefined): number {
   const months = Number.parseInt(value ?? '3', 10);
   return Number.isInteger(months) && months > 0 && months <= 120 ? months : 3;
+}
+
+function daysArgument(value: string | undefined): number {
+  const days = Number.parseInt(value ?? '90', 10);
+  return Number.isInteger(days) && days > 0 && days <= 3_650 ? days : 90;
 }
 
 function portArgument(value: string | undefined): number {

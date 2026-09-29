@@ -60,3 +60,51 @@ describe('connectionStatuses without a ledger', () => {
     ).toEqual(['never']);
   });
 });
+
+describe('caton serve syncing', () => {
+  it('lets the web interface sync connections with the secrets of the open store', async () => {
+    let runner:
+      | ((names: readonly string[], lookup: (key: string) => string | undefined) => Promise<void>)
+      | undefined;
+    const context = {
+      ...testContext({millennium: workingSource, revolut: failingSource}),
+      startWeb: (port: number, sync: NonNullable<typeof runner>) => {
+        runner = sync;
+        return Promise.resolve({
+          origin: `http://127.0.0.1:${String(port)}`,
+          accessLink: () => 'link',
+        });
+      },
+    };
+    await run(['serve'], context);
+    await runner?.(['revolut'], () => undefined);
+
+    expect(context.ledger().lastRun('revolut')?.outcome).toBe('failed');
+    expect(context.ledger().lastRun('millennium')).toBeNull();
+  });
+});
+
+describe('connectionStatuses after a change', () => {
+  it('says when a connection changed after its last sync', async () => {
+    const context = testContext({millennium: workingSource});
+    await run(['sync'], context);
+    const [before, after] = ['2026-09-27T09:00:00.000Z', '2026-09-27T11:00:00.000Z'].map(
+      changedAt => ({
+        id: 'millennium',
+        title: 'Millennium',
+        plugin: 'fake',
+        settings: {},
+        changedAt,
+      }),
+    );
+
+    expect(
+      connectionStatuses(before === undefined ? [] : [before], () => context.readOnlyLedger())[0]
+        ?.changedSinceSync,
+    ).toBe(false);
+    expect(
+      connectionStatuses(after === undefined ? [] : [after], () => context.readOnlyLedger())[0]
+        ?.changedSinceSync,
+    ).toBe(true);
+  });
+});

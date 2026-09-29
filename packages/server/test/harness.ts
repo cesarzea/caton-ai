@@ -46,6 +46,7 @@ export const CONNECTIONS: ConnectionStatus[] = [
     lastRunAt: '2026-09-27T10:00:00.000Z',
     lastSuccessfulSyncAt: '2026-09-27T10:00:00.000Z',
     error: null,
+    changedSinceSync: false,
   },
 ];
 
@@ -67,6 +68,12 @@ export async function started(overrides: Partial<ServerOptions> = {}): Promise<S
     secretNeeds: () => new Map([['email-alerts:amex:imap-password', ['Amex']]]),
     plugins: PLUGINS,
     configuration: memoryConfiguration(),
+    sync: () => Promise.resolve(),
+    reports: {
+      spend: () => ({cash: [], accrual: []}),
+      documents: () => ({documents: []}),
+      upcoming: () => ({charges: []}),
+    },
     assets: null,
     log: message => {
       logged.push(message);

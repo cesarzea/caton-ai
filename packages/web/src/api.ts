@@ -5,14 +5,21 @@ import {
   pluginListSchema,
   secretListSchema,
   statusSchema,
+  spendReportSchema,
+  documentListSchema,
+  upcomingListSchema,
+  syncStartedSchema,
 } from '@caton-ai/api';
 import type {
+  DocumentInfo,
   InitStoreRequest,
   InstanceInfo,
   InstanceRequest,
   PluginInfo,
   SecretEntry,
+  SpendReport,
   Status,
+  UpcomingCharge,
 } from '@caton-ai/api';
 
 /** A refused request, with the message the server wrote for the user. */
@@ -81,6 +88,16 @@ const configurationApi = {
     send('PUT', `/api/instances/${encodeURIComponent(id)}`, request).then(done),
   removeInstance: (id: string): Promise<void> =>
     send('DELETE', `/api/instances/${encodeURIComponent(id)}`).then(done),
+  spend: async (): Promise<SpendReport> => spendReportSchema.parse(await json('GET', '/api/spend')),
+  documents: async (): Promise<DocumentInfo[]> =>
+    documentListSchema.parse(await json('GET', '/api/documents')).documents,
+  upcoming: async (): Promise<UpcomingCharge[]> =>
+    upcomingListSchema.parse(await json('GET', '/api/upcoming')).charges,
+  /** Starts syncing the connections named, or every one; returns what is being synced. */
+  sync: async (connections?: readonly string[]): Promise<string[]> =>
+    syncStartedSchema.parse(
+      await json('POST', '/api/sync', connections === undefined ? {} : {connections}),
+    ).syncing,
 };
 
 export type Api = typeof httpApi & typeof configurationApi;

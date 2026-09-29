@@ -115,6 +115,12 @@ describe('start-up failures', () => {
       credentials: {read: () => '', write: () => undefined},
       connections: () => [],
       secretNeeds: () => new Map(),
+      sync: () => Promise.resolve(),
+      reports: {
+        spend: () => ({cash: [], accrual: []}),
+        documents: () => ({documents: []}),
+        upcoming: () => ({charges: []}),
+      },
       plugins: [],
       configuration: {instances: () => [], save: () => undefined},
       assets: null,

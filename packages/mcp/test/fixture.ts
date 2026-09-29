@@ -1,5 +1,5 @@
 import {currencyCode, money} from '@caton-ai/core';
-import type {Account, Transaction} from '@caton-ai/core';
+import type {Account, FinancialDocument, Transaction} from '@caton-ai/core';
 import {openLedger} from '@caton-ai/ledger';
 import type {LedgerReader} from '@caton-ai/ledger';
 
@@ -50,6 +50,40 @@ const MOVEMENTS = [
   }),
 ];
 
+const document = (overrides: Partial<FinancialDocument>): FinancialDocument => ({
+  id: 'email:<1@x>',
+  kind: 'receipt',
+  issuer: 'Example AI Inc',
+  amount: money(16_000, 'EUR'),
+  issuedOn: '2026-09-14',
+  periodStart: null,
+  periodEnd: null,
+  dueOn: null,
+  reference: 'INV-1',
+  account: null,
+  verified: true,
+  origin: 'email from billing@example.com: Your receipt',
+  ...overrides,
+});
+
+const DOCUMENTS = [
+  document({}),
+  document({
+    id: 'email:<2@x>',
+    kind: 'renewal',
+    amount: null,
+    issuedOn: '2026-09-20',
+    dueOn: '2026-10-05',
+    verified: false,
+  }),
+];
+
+const LINKS = [{documentId: 'email:<1@x>', transactionId: 'eb:hash-abc:ref-1'}];
+
+const BALANCES = [
+  {accountId: account.id, type: 'CLBD', amount: money(123_456, 'EUR'), referenceDate: '2026-09-26'},
+];
+
 export const SESSION_UID = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 
 /** A ledger where `millennium` synced and `revolut` failed. */
@@ -63,17 +97,12 @@ function seededLedger(): LedgerReader {
       {
         account,
         transactions: MOVEMENTS,
-        balances: [
-          {
-            accountId: account.id,
-            type: 'CLBD',
-            amount: money(123_456, 'EUR'),
-            referenceDate: '2026-09-26',
-          },
-        ],
+        balances: BALANCES,
       },
     ],
+    documents: DOCUMENTS,
   });
+  ledger.linkDocuments(LINKS, new Date());
   ledger.recordFailure({
     source: 'revolut',
     startedAt: new Date('2026-09-27T10:01:00Z'),

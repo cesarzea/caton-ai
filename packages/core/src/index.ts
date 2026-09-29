@@ -4,6 +4,7 @@ export type {
   Connector,
   ConnectorEnvironment,
   ConnectorManifest,
+  ConnectorState,
   ModelOptions,
   ModelProvider,
   VariableCondition,
@@ -13,6 +14,10 @@ export type {
 export {topCounterparties} from './counterparties.ts';
 export type {CounterpartyTotal} from './counterparties.ts';
 export {moneyFromDecimal, moneyToDecimal} from './decimal.ts';
+export {DOCUMENT_KINDS, PartialReadError} from './document.ts';
+export type {DocumentKind, FinancialDocument} from './document.ts';
+export {matchDocuments} from './matching.ts';
+export type {DocumentLink} from './matching.ts';
 export {ModelError, REASONING_EFFORTS} from './model.ts';
 export type {
   Extraction,
@@ -26,6 +31,10 @@ export {addMoney, currencyCode, currencyDigits, formatMoney, money, negateMoney}
 export type {CurrencyCode, Money} from './money.ts';
 export {firstDayOfLastMonths} from './period.ts';
 export type {TransactionSource} from './source.ts';
-export {monthlyOutflows} from './spend.ts';
-export type {MonthlyTotal} from './spend.ts';
+export {monthlySpend} from './spend.ts';
+export type {MonthlySpend, SpendBasis} from './spend.ts';
+export type {LinkedDocument} from './spend-items.ts';
+export {splitByMonth} from './split.ts';
+export {upcomingCharges} from './upcoming.ts';
+export type {UpcomingCharge} from './upcoming.ts';
 export type {Transaction, TransactionStatus} from './transaction.ts';

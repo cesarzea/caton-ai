@@ -1,3 +1,4 @@
+import {money} from '@caton-ai/core';
 import {describe, expect, it} from 'vitest';
 
 import {run} from '../src/app.ts';
@@ -35,8 +36,8 @@ describe('caton accounts and spend', () => {
     expect(context.lines.slice(1)).toEqual([
       'Institution   Account          Balance',
       'Example Bank  Current account  €1,234.56',
-      'Month    Outflows',
-      '2026-09  €160.00',
+      'Month    Spending  Only in documents  Receipts no account shows',
+      '2026-09  €160.00   —                  —',
     ]);
   });
 
@@ -75,5 +76,86 @@ describe('caton status and help', () => {
 
     expect(await run(['accounts'], context)).toBe(0);
     expect(context.lines).toEqual(['No accounts yet. Run: caton sync']);
+  });
+});
+
+const RECEIPT = {
+  id: 'email:<1@x>',
+  kind: 'receipt',
+  issuer: 'Example AI Inc',
+  amount: money(16_000, 'EUR'),
+  issuedOn: '2026-09-15',
+  periodStart: null,
+  periodEnd: null,
+  dueOn: null,
+  reference: null,
+  account: null,
+  verified: false,
+  origin: 'email',
+} as const;
+
+describe('caton documents', () => {
+  it('says when there are none', async () => {
+    const context = testContext({millennium: workingSource});
+
+    expect(await run(['documents', '30'], context)).toBe(0);
+    expect(context.lines.at(-1)).toBe('No documents in the last 30 days.');
+  });
+
+  it('lists documents with their state', async () => {
+    const context = testContext({millennium: workingSource});
+    const at = new Date('2026-09-27T09:00:00Z');
+    context.ledger().saveSync({
+      source: 'mail',
+      startedAt: at,
+      finishedAt: at,
+      accounts: [],
+      documents: [RECEIPT],
+    });
+
+    expect(await run(['documents'], context)).toBe(0);
+    expect(context.lines.at(-1)).toMatch(
+      /^2026-09-15\s+receipt\s+Example AI Inc\s+€160\.00\s+to review\s+—$/u,
+    );
+    expect(context.errors.at(-1)).toBe(
+      '⚠ 1 document(s) to review: their fields are not all written in the email',
+    );
+  });
+});
+
+describe('caton documents linked and without amount', () => {
+  it('shows which are linked to a movement, and a dash for a missing amount', async () => {
+    const context = testContext({millennium: workingSource});
+    await run(['sync'], context);
+    const at = new Date('2026-09-27T09:00:00Z');
+    const loose = {...RECEIPT, id: 'email:<2@x>', amount: null};
+    const ledger = context.ledger();
+    ledger.saveSync({
+      source: 'mail',
+      startedAt: at,
+      finishedAt: at,
+      accounts: [],
+      documents: [RECEIPT, loose],
+    });
+    ledger.linkDocuments([{documentId: RECEIPT.id, transactionId: 'eb:hash-abc:1'}], at);
+
+    expect(await run(['documents'], context)).toBe(0);
+    expect(context.lines.some(line => /Example AI Inc\s+—\s+to review\s+—$/u.test(line))).toBe(
+      true,
+    );
+    expect(context.lines.some(line => /€160\.00\s+to review\s+linked$/u.test(line))).toBe(true);
+  });
+});
+
+describe('caton sync of some connections', () => {
+  it('syncs only the ones named, and refuses unknown names', async () => {
+    const context = testContext({millennium: workingSource, revolut: failingSource});
+
+    expect(await run(['sync', 'millennium'], context)).toBe(0);
+    expect(context.lines).toEqual(['✓ millennium: 1 account(s), 1 movement(s)']);
+    expect(await run(['sync', 'nobody'], context)).toBe(2);
+    expect(context.errors.at(-1)).toBe(
+      'Unknown connection: nobody. Connections: millennium, revolut',
+    );
   });
 });
