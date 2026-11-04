@@ -15,6 +15,6 @@
     "@caton-ai/core": "0.0.0",
     "imapflow": "2.0.5",
     "postal-mime": "3.0.0",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   }
 }
